@@ -4,7 +4,8 @@ import (
 	"math/rand"
 	"sort"
 	"testing"
-	"zsync/chunks"
+
+	"github.com/AppImageCrafters/zsync/chunks"
 )
 
 var T = []byte{1, 2, 3, 4}
