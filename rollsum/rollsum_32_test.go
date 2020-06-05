@@ -2,10 +2,11 @@ package rollsum
 
 import (
 	"bytes"
-	"circularbuffer"
 	"hash"
 	"io"
 	"testing"
+
+	"github.com/AppImageCrafters/zsync/circularbuffer"
 )
 
 func TestThatRollsum32SatisfiesHashInterface(t *testing.T) {

@@ -2,10 +2,11 @@ package filechecksum
 
 import (
 	"bytes"
-	"chunks"
-	"index"
 	"os"
 	"testing"
+
+	"github.com/AppImageCrafters/zsync/chunks"
+	"github.com/AppImageCrafters/zsync/index"
 )
 
 func TestChecksumGenerationEndsWithFilechecksum(t *testing.T) {
