@@ -49,8 +49,15 @@ func ParseControl(data []byte) (control *Control, err error) {
 		return nil, err
 	}
 
+	dataEnd := uint(dataStart) +
+		header.Blocks*(header.HashLengths.WeakCheckSumBytes+header.HashLengths.StrongCheckSumBytes)
+
+	if int(dataEnd) > len(data) {
+		return nil, fmt.Errorf("missing checksums blocks in control file")
+	}
+
 	control = &Control{header, nil, nil}
-	control.ChecksumIndex, control.ChecksumLookup, header.Blocks, err = readChecksumIndex(data[dataStart:], header)
+	control.ChecksumIndex, control.ChecksumLookup, header.Blocks, err = readChecksumIndex(data[dataStart:dataEnd], header)
 
 	return
 }
