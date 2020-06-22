@@ -39,7 +39,7 @@ func TestSyncChunksDisplaced(t *testing.T) {
 
 	output := bytes.Buffer{}
 
-	err = Sync(local, &output, *zsyncControl)
+	err = Sync(local, &output, *zsyncControl, NewDummyProgressReporter())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestSync1stChunkChanged(t *testing.T) {
 
 	output := bytes.Buffer{}
 
-	err = Sync(local, &output, *zsyncControl)
+	err = Sync(local, &output, *zsyncControl, NewDummyProgressReporter())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +81,7 @@ func TestSync2ndChunkChanged(t *testing.T) {
 
 	output := bytes.Buffer{}
 
-	err = Sync(local, &output, *zsyncControl)
+	err = Sync(local, &output, *zsyncControl, NewDummyProgressReporter())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -102,7 +102,7 @@ func TestSync3rdChunkChanged(t *testing.T) {
 
 	output := bytes.Buffer{}
 
-	err = Sync(local, &output, *zsyncControl)
+	err = Sync(local, &output, *zsyncControl, NewDummyProgressReporter())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -3,7 +3,6 @@ package zsync
 import (
 	"github.com/AppImageCrafters/zsync/chunks"
 	"github.com/AppImageCrafters/zsync/circularbuffer"
-	"github.com/schollz/progressbar/v3"
 	"hash"
 	"io"
 	"math"
@@ -126,13 +125,11 @@ func (syncData *SyncData) SearchAllMatchingChunks() ([]chunks.ChunkInfo, error) 
 		return nil, err
 	}
 
-	progress := progressbar.DefaultBytes(
-		lookupSlice.fileSize,
-		"Searching reusable chunks: ",
-	)
+	syncData.progress.SetDescription("Searching reusable chunks: ")
+	syncData.progress.SetTotal(lookupSlice.fileSize)
 
 	for !lookupSlice.isEOF() {
-		_ = progress.Set(int(lookupSlice.chunkOffset))
+		syncData.progress.SetProgress(lookupSlice.chunkOffset)
 
 		weakMatches := syncData.ChecksumIndex.FindWeakChecksum2(lookupSlice.GetWeakChecksum())
 		if weakMatches != nil {
@@ -150,7 +147,8 @@ func (syncData *SyncData) SearchAllMatchingChunks() ([]chunks.ChunkInfo, error) 
 			return nil, err
 		}
 	}
-	_ = progress.Set(int(lookupSlice.fileSize))
+
+	syncData.progress.SetProgress(lookupSlice.fileSize)
 	return matchingChunks, nil
 }
 

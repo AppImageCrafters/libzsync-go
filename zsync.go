@@ -9,7 +9,6 @@ import (
 	"os"
 	"sort"
 
-	"github.com/schollz/progressbar/v3"
 	"golang.org/x/crypto/md4"
 
 	"github.com/AppImageCrafters/zsync/chunks"
@@ -25,15 +24,17 @@ type SyncData struct {
 	StrongChecksumBuilder hash.Hash
 	Local                 *os.File
 	Output                io.Writer
+	progress              ProgressReporter
 }
 
-func Sync(local *os.File, output io.Writer, control control.Control) (err error) {
+func Sync(local *os.File, output io.Writer, control control.Control, progressReporter ProgressReporter) (err error) {
 	syncData := SyncData{
 		Control:               control,
 		WeakChecksumBuilder:   rollsum.NewRollsum32(control.BlockSize),
 		StrongChecksumBuilder: md4.New(),
 		Local:                 local,
 		Output:                output,
+		progress:              progressReporter,
 	}
 
 	reusableChunks, err := syncData.searchReusableChunks()
@@ -51,10 +52,8 @@ func Sync(local *os.File, output io.Writer, control control.Control) (err error)
 func (syncData *SyncData) mergeChunks(allChunks []chunks.ChunkInfo, output io.Writer) error {
 	outputSHA1 := sha1.New()
 
-	progress := progressbar.DefaultBytes(
-		syncData.FileLength,
-		"Merging chunks: ",
-	)
+	syncData.progress.SetDescription("Merging chunks: ")
+	syncData.progress.SetTotal(syncData.FileLength)
 
 	for _, chunk := range allChunks {
 		_, err := chunk.Source.Seek(chunk.SourceOffset, 0)
@@ -68,7 +67,7 @@ func (syncData *SyncData) mergeChunks(allChunks []chunks.ChunkInfo, output io.Wr
 			err = httpFileSource.Request(chunk.Size)
 		}
 
-		_, err = io.CopyN(io.MultiWriter(output, outputSHA1, progress), chunk.Source, chunk.Size)
+		_, err = io.CopyN(io.MultiWriter(output, outputSHA1, syncData.progress), chunk.Source, chunk.Size)
 		if err != nil {
 			return err
 		}
