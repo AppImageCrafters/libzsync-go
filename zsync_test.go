@@ -56,6 +56,37 @@ func TestZSync2_SearchReusableChunks(t *testing.T) {
 	assert.False(t, ok)
 }
 
+func TestZSync2_WriteChunks(t *testing.T) {
+	zsyncControl, _ := getControl()
+	zsyncControl.URL = serverUrl + "file"
+
+	source, err := os.Open(dataDir + "/file")
+	assert.Equal(t, err, nil)
+	defer source.Close()
+
+	zsync := ZSync2{
+		BlockSize:      int64(zsyncControl.BlockSize),
+		checksumsIndex: zsyncControl.ChecksumIndex,
+	}
+
+	copy, err := os.Create(dataDir + "/file_copy")
+	assert.Equal(t, err, nil)
+	defer source.Close()
+
+	chunks, _ := zsync.SearchReusableChunks(source)
+
+	sourceCopy, err := os.Open(dataDir + "/file")
+	assert.Equal(t, err, nil)
+	defer sourceCopy.Close()
+
+	err = zsync.WriteChunks(chunks, sourceCopy, copy)
+	assert.Equal(t, err, nil)
+
+	original_data, _ := ioutil.ReadFile(dataDir + "/file")
+	copy_data, _ := ioutil.ReadFile(dataDir + "/file_copy")
+
+	assert.Equal(t, original_data, copy_data)
+}
 func TestSyncChunksDisplaced(t *testing.T) {
 	zsyncControl, _ := getControl()
 	zsyncControl.URL = serverUrl + "file"
