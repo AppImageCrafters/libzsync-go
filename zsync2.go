@@ -2,12 +2,12 @@ package zsync
 
 import (
 	"fmt"
-	"github.com/AppImageCrafters/zsync/hasedbuffer"
-	"github.com/AppImageCrafters/zsync/index"
 	"io"
 	"os"
 
 	"github.com/AppImageCrafters/zsync/chunks"
+	"github.com/AppImageCrafters/zsync/hasedbuffer"
+	"github.com/AppImageCrafters/zsync/index"
 )
 
 type ZSync2 struct {
