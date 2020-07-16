@@ -6,28 +6,33 @@ import (
 )
 
 func TestRollingHash(t *testing.T) {
-	hash := RollingHash{
-		a: 0,
-		b: 0,
-	}
+	hash := NewRollingHash(7)
 
-	for i := 0; i < 4; i++ {
-		hash.Append('1', uint16(4-i))
+	data := "1111"
+	for _, c := range data {
+		hash.Update(uint16(c), 0)
 	}
-	assert.Equal(t, hash, RollingHash{
-		a: 196,
-		b: 490,
-	})
+	sum := make([]byte, 4)
+	hash.PutSum(sum)
+	assert.Equal(t, sum, []byte{196, 0, 234, 1})
+}
 
-	expectedResults := []RollingHash{
-		{a: 197, b: 59951},
-		{a: 198, b: 53877},
-		{a: 199, b: 47804},
-		{a: 200, b: 41732},
-	}
+func TestRollingHash_Update(t *testing.T) {
+	rhash := NewRollingHash(7)
+	sum := make([]byte, 4)
 
-	for i := 0; i < 4; i++ {
-		hash.Update('2', '1', 7)
-		assert.Equal(t, hash, expectedResults[i])
-	}
+	rhash.PutSum(sum)
+	assert.Equal(t, sum, []byte{0, 0, 0, 0})
+
+	rhash.Update('1', 0)
+	rhash.PutSum(sum)
+	assert.Equal(t, sum, []byte{49, 0, 49, 0})
+
+	rhash.Update('2', '1')
+	rhash.PutSum(sum)
+	assert.Equal(t, sum, []byte{50, 0, 227, 231})
+
+	rhash.Update(0, '2')
+	rhash.PutSum(sum)
+	assert.Equal(t, sum, []byte{0, 0, 227, 206})
 }
