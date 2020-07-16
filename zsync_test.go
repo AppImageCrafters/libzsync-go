@@ -27,7 +27,7 @@ func TestMain(m *testing.M) {
 var dataDir string = "/tmp/appimage-update"
 var serverUrl string = ""
 
-func TestSync1stChunkChanged2(t *testing.T) {
+func TestZSync2_SearchReusableChunks(t *testing.T) {
 	zsyncControl, _ := getControl()
 	zsyncControl.URL = serverUrl + "file"
 
