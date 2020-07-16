@@ -27,6 +27,35 @@ func TestMain(m *testing.M) {
 var dataDir string = "/tmp/appimage-update"
 var serverUrl string = ""
 
+func TestSync1stChunkChanged2(t *testing.T) {
+	zsyncControl, _ := getControl()
+	zsyncControl.URL = serverUrl + "file"
+
+	local, err := os.Open(dataDir + "/1st_chunk_changed")
+	if err != nil {
+		return
+	}
+	defer local.Close()
+
+	zsync := ZSync2{
+		BlockSize:      int64(zsyncControl.BlockSize),
+		checksumsIndex: zsyncControl.ChecksumIndex,
+	}
+
+	chunks, _ := zsync.SearchReusableChunks(local)
+	chunk, _ := <-chunks
+
+	assert.Equal(t, chunk.Size, int64(zsyncControl.BlockSize))
+	assert.Equal(t, chunk.SourceOffset, int64(zsyncControl.BlockSize))
+
+	chunk, _ = <-chunks
+	assert.Equal(t, chunk.Size, int64(60))
+	assert.Equal(t, chunk.SourceOffset, int64(zsyncControl.BlockSize*2))
+
+	_, ok := <-chunks
+	assert.False(t, ok)
+}
+
 func TestSyncChunksDisplaced(t *testing.T) {
 	zsyncControl, _ := getControl()
 	zsyncControl.URL = serverUrl + "file"
@@ -149,18 +178,18 @@ func generateTestDataDir() string {
 
 	rand.Seed(time.Now().UnixNano())
 
-	_ = generateFile([]byte("0123456789"), 2048*2+60, 0, dataDir+"/file")
-	_ = generateFile([]byte("0123456789"), 2048*2+70, 1, dataDir+"/file_displaced")
+	_ = GenerateSampleFile([]byte("0123456789"), 2048*2+60, 0, dataDir+"/file")
+	_ = GenerateSampleFile([]byte("0123456789"), 2048*2+70, 1, dataDir+"/file_displaced")
 	makeZsyncFile(dataDir+"/file", err)
 
-	_ = generateFile([]byte("x123456789"), 2048*2+60, 0, dataDir+"/1st_chunk_changed")
-	_ = generateFile([]byte("0x23456789"), 2048*2+60, 0, dataDir+"/2nd_chunk_changed")
-	_ = generateFile([]byte("01x3456789"), 2048*2+60, 0, dataDir+"/3rd_chunk_changed")
+	_ = GenerateSampleFile([]byte("x123456789"), 2048*2+60, 0, dataDir+"/1st_chunk_changed")
+	_ = GenerateSampleFile([]byte("0x23456789"), 2048*2+60, 0, dataDir+"/2nd_chunk_changed")
+	_ = GenerateSampleFile([]byte("01x3456789"), 2048*2+60, 0, dataDir+"/3rd_chunk_changed")
 
 	return dataDir
 }
 
-func generateFile(chars []byte, size int, offset int, filePath string) (err error) {
+func GenerateSampleFile(chars []byte, size int, offset int, filePath string) (err error) {
 	baseString := make([]byte, size)
 	for i := range baseString {
 		baseString[i] = chars[((offset+i)/2048)%len(chars)]
