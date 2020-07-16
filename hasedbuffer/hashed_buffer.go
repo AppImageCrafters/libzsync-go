@@ -8,24 +8,33 @@ import (
 )
 
 type HashedRingBuffer struct {
-	hash rollinghash.RollingHash
-	rBuf rbuf.FixedSizeRingBuf
+	hash *rollinghash.RollingHash
+	rBuf *rbuf.FixedSizeRingBuf
 }
 
 func NewHashedBuffer(size int) *HashedRingBuffer {
 	return &HashedRingBuffer{
-		hash: rollinghash.RollingHash{},
-		rBuf: *rbuf.NewFixedSizeRingBuf(size),
+		hash: rollinghash.NewRollingHash(7),
+		rBuf: rbuf.NewFixedSizeRingBuf(size),
 	}
 }
 
 func (h *HashedRingBuffer) Write(p []byte) (n int, err error) {
-	pLen := len(p)
-	evicted := make([]byte, pLen)
-	_, _ = h.rBuf.Read(evicted)
+	pSize := len(p)
+	evictedSize := h.rBuf.Readable
+	if evictedSize > pSize {
+		evictedSize = pSize
+	}
 
-	for i := 0; i < pLen; i++ {
-		h.hash.Update(p[i], evicted[i], 7)
+	evicted := make([]byte, evictedSize)
+	_, _ = h.rBuf.ReadAndMaybeAdvance(evicted, true)
+
+	for i := 0; i < pSize; i++ {
+		if i < evictedSize {
+			h.hash.Update(uint16(p[i]), uint16(evicted[i]))
+		} else {
+			h.hash.Update(uint16(p[i]), 0)
+		}
 	}
 
 	return h.rBuf.Write(p)
@@ -48,8 +57,11 @@ func (h HashedRingBuffer) RollingSum() []byte {
 }
 
 func (h HashedRingBuffer) CheckSum() []byte {
-	sum := md4.New()
-	return sum.Sum(h.rBuf.Bytes())
+	sumBuilder := md4.New()
+	sumBuilder.Write(h.rBuf.Bytes())
+	sum := sumBuilder.Sum(nil)
+
+	return sum
 }
 
 func (h HashedRingBuffer) CheckSumHex() string {

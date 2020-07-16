@@ -1,8 +1,10 @@
 package hasedbuffer
 
 import (
+	"bytes"
 	"github.com/glycerine/rbuf"
 	"golang.org/x/crypto/md4"
+	"io"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,12 +16,16 @@ func TestHashedBuffer_Write(t *testing.T) {
 	_, _ = buf.Write([]byte("1111"))
 
 	assert.Equal(t, "c400ea01", buf.RollingSumHex())
-	assert.Equal(t, md4Sum.Sum([]byte("1111")), buf.CheckSum())
+	md4Sum.Write([]byte("1111"))
+	assert.Equal(t, md4Sum.Sum(nil), buf.CheckSum())
+	md4Sum.Reset()
 
 	_, _ = buf.Write([]byte("2222"))
 
 	assert.Equal(t, "c80004a3", buf.RollingSumHex())
-	assert.Equal(t, md4Sum.Sum([]byte("2222")), buf.CheckSum())
+
+	md4Sum.Write([]byte("2222"))
+	assert.Equal(t, md4Sum.Sum(nil), buf.CheckSum())
 }
 
 func TestRbuf(t *testing.T) {
@@ -34,4 +40,54 @@ func TestRbuf(t *testing.T) {
 
 	_, _ = buf.Write([]byte("2222"))
 	assert.Equal(t, buf.Bytes(), []byte("2222"))
+}
+
+func TestHashedRingBufferZeoredTerminatedChunk(t *testing.T) {
+	data := make([]byte, 2048)
+	for i := 0; i < 60; i++ {
+		data[i] = '2'
+	}
+
+	buf := NewHashedBuffer(2048)
+
+	n, _ := buf.Write(data)
+	assert.Equal(t, n, 2048)
+
+	assert.Equal(t, buf.RollingSum(), []byte{184, 11, 76, 102})
+
+	buf = NewHashedBuffer(2048)
+	n, _ = buf.Write(data[:60])
+	assert.Equal(t, n, 60)
+
+	n, _ = buf.Write(data[60:])
+	assert.Equal(t, n, 2048-60)
+
+	assert.Equal(t, buf.RollingSum(), []byte{184, 11, 76, 102})
+}
+
+func TestHashedRingBufferChecksums(t *testing.T) {
+	baseString := make([]byte, 2048*2+60)
+	for i := range baseString {
+		baseString[i] = []byte("0123456789")[(i/2048)%9]
+	}
+
+	expectedRollingSums := [][]byte{{0, 192}, {0, 196}, {76, 102}}
+	expectedChecksums := [][]byte{{169, 65, 57}, {131, 128, 226}, {243, 188, 144}}
+
+	buf := NewHashedBuffer(2048)
+	zeroes := make([]byte, 2048)
+
+	for i := 0; i < 3; i++ {
+		bytesCopied, _ := io.CopyN(buf, bytes.NewReader(baseString[2048*i:]), 2048)
+		if bytesCopied < 2048 {
+			_, _ = io.CopyN(buf, bytes.NewReader(zeroes), 2048-bytesCopied)
+		}
+
+		rollSum := buf.RollingSum()[2:4]
+		checkSum := buf.CheckSum()[0:3]
+
+		assert.Equal(t, expectedRollingSums[i], rollSum)
+		assert.Equal(t, expectedChecksums[i], checkSum)
+	}
+
 }
