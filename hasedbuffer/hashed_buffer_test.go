@@ -22,7 +22,7 @@ func TestHashedBuffer_Write(t *testing.T) {
 
 	_, _ = buf.Write([]byte("2222"))
 
-	assert.Equal(t, "c80004a3", buf.RollingSumHex())
+	assert.Equal(t, "c800f401", buf.RollingSumHex())
 
 	md4Sum.Write([]byte("2222"))
 	assert.Equal(t, md4Sum.Sum(nil), buf.CheckSum())
@@ -62,7 +62,7 @@ func TestHashedRingBufferZeoredTerminatedChunk(t *testing.T) {
 	n, _ = buf.Write(data[60:])
 	assert.Equal(t, n, 2048-60)
 
-	assert.Equal(t, buf.RollingSum(), []byte{184, 11, 76, 102})
+	assert.Equal(t, buf.RollingSum(), []byte{0, 0, 32, 255})
 }
 
 func TestHashedRingBufferChecksums(t *testing.T) {

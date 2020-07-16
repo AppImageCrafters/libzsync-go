@@ -13,8 +13,17 @@ type HashedRingBuffer struct {
 }
 
 func NewHashedBuffer(size int) *HashedRingBuffer {
+	/* Calculate bit-shift for blocksize */
+	var blockShift uint16
+	for i := uint16(0); i < 32; i++ {
+		if size <= (1 << i) {
+			blockShift = i
+			break
+		}
+	}
+
 	return &HashedRingBuffer{
-		hash: rollinghash.NewRollingHash(7),
+		hash: rollinghash.NewRollingHash(blockShift),
 		rBuf: rbuf.NewFixedSizeRingBuf(size),
 	}
 }
