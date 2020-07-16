@@ -3,6 +3,8 @@ package zsync
 import (
 	"bytes"
 	"fmt"
+	"github.com/AppImageCrafters/zsync/chunks"
+	"io"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -31,18 +33,12 @@ func TestZSync2_SearchReusableChunks(t *testing.T) {
 	zsyncControl, _ := getControl()
 	zsyncControl.URL = serverUrl + "file"
 
-	local, err := os.Open(dataDir + "/1st_chunk_changed")
-	if err != nil {
-		return
-	}
-	defer local.Close()
-
 	zsync := ZSync2{
 		BlockSize:      int64(zsyncControl.BlockSize),
 		checksumsIndex: zsyncControl.ChecksumIndex,
 	}
 
-	chunks, _ := zsync.SearchReusableChunks(local)
+	chunks, _ := zsync.SearchReusableChunks(dataDir + "/1st_chunk_changed")
 	chunk, _ := <-chunks
 
 	assert.Equal(t, chunk.Size, int64(zsyncControl.BlockSize))
@@ -57,36 +53,35 @@ func TestZSync2_SearchReusableChunks(t *testing.T) {
 }
 
 func TestZSync2_WriteChunks(t *testing.T) {
-	zsyncControl, _ := getControl()
-	zsyncControl.URL = serverUrl + "file"
-
-	source, err := os.Open(dataDir + "/file")
-	assert.Equal(t, err, nil)
-	defer source.Close()
-
 	zsync := ZSync2{
-		BlockSize:      int64(zsyncControl.BlockSize),
-		checksumsIndex: zsyncControl.ChecksumIndex,
+		BlockSize:      2,
+		checksumsIndex: nil,
 	}
 
-	copy, err := os.Create(dataDir + "/file_copy")
+	chunkChan := make(chan chunks.ChunkInfo)
+
+	sourceData := []byte{1, 2}
+	output, err := os.Create(dataDir + "/file_copy")
 	assert.Equal(t, err, nil)
-	defer source.Close()
+	defer output.Close()
 
-	chunks, _ := zsync.SearchReusableChunks(source)
+	go func() {
+		chunkChan <- chunks.ChunkInfo{TargetOffset: 1, Size: 2}
+		close(chunkChan)
+	}()
 
-	sourceCopy, err := os.Open(dataDir + "/file")
+	err = zsync.WriteChunks(bytes.NewReader(sourceData), output, chunkChan)
 	assert.Equal(t, err, nil)
-	defer sourceCopy.Close()
 
-	err = zsync.WriteChunks(chunks, sourceCopy, copy)
+	// read result
+	output.Seek(0, io.SeekStart)
+	resultData, err := ioutil.ReadAll(output)
 	assert.Equal(t, err, nil)
 
-	original_data, _ := ioutil.ReadFile(dataDir + "/file")
-	copy_data, _ := ioutil.ReadFile(dataDir + "/file_copy")
-
-	assert.Equal(t, original_data, copy_data)
+	expectedData := []byte{0, 1, 2}
+	assert.Equal(t, resultData, expectedData)
 }
+
 func TestSyncChunksDisplaced(t *testing.T) {
 	zsyncControl, _ := getControl()
 	zsyncControl.URL = serverUrl + "file"

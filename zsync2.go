@@ -5,6 +5,7 @@ import (
 	"github.com/AppImageCrafters/zsync/hasedbuffer"
 	"github.com/AppImageCrafters/zsync/index"
 	"io"
+	"os"
 
 	"github.com/AppImageCrafters/zsync/chunks"
 )
@@ -14,19 +15,33 @@ type ZSync2 struct {
 	checksumsIndex *index.ChecksumIndex
 }
 
-func (zsync *ZSync2) SearchReusableChunks(input io.ReadSeeker) (<-chan chunks.ChunkInfo, error) {
-	inputSize, err := input.Seek(0, io.SeekEnd)
+func (zsync *ZSync2) SearchReusableChunks(path string) (<-chan chunks.ChunkInfo, error) {
+	input, err := os.Open(path)
 	if err != nil {
 		return nil, err
 	}
+	defer input.Close()
 
-	// reset file offset to 0
-	_, _ = input.Seek(0, io.SeekStart)
+	inputSize, err := zsync.getFileSize(input)
+	if err != nil {
+		return nil, err
+	}
 
 	chunkChannel := make(chan chunks.ChunkInfo)
 	go zsync.searchReusableChunksAsync(0, inputSize, input, chunkChannel)
 
 	return chunkChannel, nil
+}
+
+func (zsync *ZSync2) getFileSize(input *os.File) (int64, error) {
+	inputSize, err := input.Seek(0, io.SeekEnd)
+	if err != nil {
+		return -1, err
+	}
+
+	// reset file offset to 0
+	_, _ = input.Seek(0, io.SeekStart)
+	return inputSize, nil
 }
 
 func (zsync *ZSync2) searchReusableChunksAsync(begin int64, end int64, input io.ReadSeeker, chunkChannel chan chunks.ChunkInfo) {
@@ -83,7 +98,7 @@ func (zsync *ZSync2) searchReusableChunksAsync(begin int64, end int64, input io.
 	close(chunkChannel)
 }
 
-func (zsync *ZSync2) WriteChunks(chunkChannel <-chan chunks.ChunkInfo, source io.ReadSeeker, output io.WriteSeeker) error {
+func (zsync *ZSync2) WriteChunks(source io.ReadSeeker, output io.WriteSeeker, chunkChannel <-chan chunks.ChunkInfo) error {
 	for {
 		chunk, ok := <-chunkChannel
 		if ok == false {
