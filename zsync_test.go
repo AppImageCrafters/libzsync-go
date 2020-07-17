@@ -153,8 +153,8 @@ func downloadFile(filepath string, url string) error {
 
 func setup() {
 	dataDir := generateTestDataDir()
-	downloadFile(dataDir+"/appimagetool-x86_64.AppImage.zsync", "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage.zsync")
-	downloadFile(dataDir+"/appimagetool-new-x86_64.AppImage", "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage")
+	downloadFile("/tmp/appimagetool-x86_64.AppImage.zsync", "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage.zsync")
+	downloadFile("/tmp/appimagetool-new-x86_64.AppImage", "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage")
 	serve(dataDir)
 }
 
