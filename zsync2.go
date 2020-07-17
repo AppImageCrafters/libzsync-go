@@ -163,10 +163,10 @@ func (zsync *ZSync2) searchReusableChunksAsync(path string, begin int64, end int
 }
 
 func (zsync *ZSync2) consumeBytes(buf *hasedbuffer.HashedRingBuffer, input *os.File, nBytes int64) error {
-	n, err := io.CopyN(buf, input, nBytes)
+	n, err := buf.ReadNFrom(input, nBytes)
 
 	// fill missing bytes with 0
-	if err == io.EOF {
+	if n != nBytes {
 		zeroBuff := make([]byte, nBytes-n)
 		_, err = buf.Write(zeroBuff)
 	}

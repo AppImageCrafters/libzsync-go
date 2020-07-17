@@ -2,11 +2,13 @@ package hasedbuffer
 
 import (
 	"encoding/hex"
-	"fmt"
+	"io"
+	"os"
+
 	"github.com/AppImageCrafters/zsync/rollinghash"
+
 	"github.com/glycerine/rbuf"
 	"golang.org/x/crypto/md4"
-	"os"
 )
 
 type HashedRingBuffer struct {
@@ -81,6 +83,28 @@ func (h HashedRingBuffer) CheckSumHex() string {
 	return hex.EncodeToString(sum)
 }
 
-func (h *HashedRingBuffer) readNFrom(input *os.File, bytes int64) (int64, error) {
-	return -1, fmt.Errorf("not implemented yet")
+func (h *HashedRingBuffer) ReadNFrom(input *os.File, bytes int64) (int64, error) {
+	newBytesIdx := h.rBuf.Last() + 1
+	n, readErr := h.rBuf.ReadFrom(io.LimitReader(input, bytes))
+	evictedSize := h.rBuf.Readable - h.rBuf.N
+	if evictedSize < 0 {
+		evictedSize = 0
+	}
+
+	for i := 0; i < int(n); i++ {
+		newChar := uint16(h.rBuf.A[h.rBuf.Use][newBytesIdx])
+
+		if i < evictedSize {
+			evicted := uint16(h.rBuf.A[h.rBuf.Use][h.rBuf.Beg])
+			h.hash.Update(newChar, evicted)
+
+			h.rBuf.Advance(1)
+		} else {
+			h.hash.Update(newChar, 0)
+		}
+
+		newBytesIdx = h.rBuf.Nextpos(newBytesIdx)
+	}
+
+	return n, readErr
 }
