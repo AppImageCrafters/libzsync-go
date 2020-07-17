@@ -29,7 +29,7 @@ func TestZSync2_Sync(t *testing.T) {
 
 			zsync := ZSync2{
 				BlockSize:      int64(zsyncControl.BlockSize),
-				checksumsIndex: zsyncControl.ChecksumIndex,
+				ChecksumsIndex: zsyncControl.ChecksumIndex,
 				RemoteFileUrl:  zsyncControl.URL,
 				RemoteFileSize: zsyncControl.FileLength,
 			}
@@ -59,7 +59,7 @@ func TestZSync2_SearchReusableChunks(t *testing.T) {
 
 	zsync := ZSync2{
 		BlockSize:      int64(zsyncControl.BlockSize),
-		checksumsIndex: zsyncControl.ChecksumIndex,
+		ChecksumsIndex: zsyncControl.ChecksumIndex,
 		RemoteFileSize: zsyncControl.FileLength,
 	}
 
@@ -88,7 +88,7 @@ func TestZSync2_SearchReusableChunks(t *testing.T) {
 func TestZSync2_WriteChunks(t *testing.T) {
 	zsync := ZSync2{
 		BlockSize:      2,
-		checksumsIndex: nil,
+		ChecksumsIndex: nil,
 	}
 
 	chunkChan := make(chan chunks.ChunkInfo)
@@ -130,7 +130,7 @@ func BenchmarkZSync2_Sync(t *testing.B) {
 
 			zsync := ZSync2{
 				BlockSize:      int64(zsyncControl.BlockSize),
-				checksumsIndex: zsyncControl.ChecksumIndex,
+				ChecksumsIndex: zsyncControl.ChecksumIndex,
 				RemoteFileUrl:  zsyncControl.URL,
 				RemoteFileSize: zsyncControl.FileLength,
 			}
@@ -163,7 +163,7 @@ func BenchmarkZSync2_SyncAppImageTool(t *testing.B) {
 
 	zsync := ZSync2{
 		BlockSize:      int64(zsyncControl.BlockSize),
-		checksumsIndex: zsyncControl.ChecksumIndex,
+		ChecksumsIndex: zsyncControl.ChecksumIndex,
 		RemoteFileSize: zsyncControl.FileLength,
 		RemoteFileUrl:  "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage",
 	}

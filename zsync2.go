@@ -15,7 +15,7 @@ import (
 
 type ZSync2 struct {
 	BlockSize      int64
-	checksumsIndex *index.ChecksumIndex
+	ChecksumsIndex *index.ChecksumIndex
 
 	RemoteFileUrl  string
 	RemoteFileSize int64
@@ -141,11 +141,11 @@ func (zsync *ZSync2) searchReusableChunksAsync(path string, begin int64, end int
 		}
 
 		weakSum := buf.RollingSum()
-		weakMatches := zsync.checksumsIndex.FindWeakChecksum2(weakSum)
+		weakMatches := zsync.ChecksumsIndex.FindWeakChecksum2(weakSum)
 
 		if weakMatches != nil {
 			strongSum := buf.CheckSum()
-			strongMatches := zsync.checksumsIndex.FindStrongChecksum2(strongSum, weakMatches)
+			strongMatches := zsync.ChecksumsIndex.FindStrongChecksum2(strongSum, weakMatches)
 			if strongMatches != nil {
 				zsync.createChunks(strongMatches, off, end, chunksChan)
 
