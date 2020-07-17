@@ -3,8 +3,12 @@ package chunks
 import "sort"
 
 type FileChunksMapper struct {
-	FileSize     int64
-	MappedChunks map[int64]ChunkInfo
+	fileSize  int64
+	chunksMap map[int64]ChunkInfo
+}
+
+func NewFileChunksMapper(fileSize int64) *FileChunksMapper {
+	return &FileChunksMapper{fileSize: fileSize, chunksMap: make(map[int64]ChunkInfo)}
 }
 
 func (mapper *FileChunksMapper) FillChunksMap(chunkChannel <-chan ChunkInfo) {
@@ -14,13 +18,13 @@ func (mapper *FileChunksMapper) FillChunksMap(chunkChannel <-chan ChunkInfo) {
 			break
 		}
 
-		mapper.MappedChunks[chunk.TargetOffset] = chunk
+		mapper.Add(chunk)
 	}
 }
 
 func (mapper *FileChunksMapper) GetMappedChunks() []ChunkInfo {
 	var chunkList []ChunkInfo
-	for _, chk := range mapper.MappedChunks {
+	for _, chk := range mapper.chunksMap {
 		chunkList = append(chunkList, chk)
 	}
 
@@ -48,13 +52,17 @@ func (mapper *FileChunksMapper) GetMissingChunks() []ChunkInfo {
 		pastChunkEnd = c.TargetOffset + c.Size
 	}
 
-	if pastChunkEnd != mapper.FileSize {
+	if pastChunkEnd != mapper.fileSize {
 		missingChunkList = append(missingChunkList, ChunkInfo{
-			Size:         mapper.FileSize - pastChunkEnd,
+			Size:         mapper.fileSize - pastChunkEnd,
 			SourceOffset: pastChunkEnd,
 			TargetOffset: pastChunkEnd,
 		})
 	}
 
 	return missingChunkList
+}
+
+func (mapper *FileChunksMapper) Add(chunk ChunkInfo) {
+	mapper.chunksMap[chunk.TargetOffset] = chunk
 }

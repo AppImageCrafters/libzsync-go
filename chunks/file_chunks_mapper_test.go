@@ -7,8 +7,8 @@ import (
 
 func TestFileChunksMapper_GetMissingChunks(t *testing.T) {
 	mapper := FileChunksMapper{
-		FileSize:     12,
-		MappedChunks: make(map[int64]ChunkInfo),
+		fileSize:  12,
+		chunksMap: make(map[int64]ChunkInfo),
 	}
 
 	chunkList := []ChunkInfo{
@@ -18,7 +18,7 @@ func TestFileChunksMapper_GetMissingChunks(t *testing.T) {
 	}
 
 	for _, chunk := range chunkList {
-		mapper.MappedChunks[chunk.TargetOffset] = chunk
+		mapper.chunksMap[chunk.TargetOffset] = chunk
 	}
 
 	result := mapper.GetMissingChunks()

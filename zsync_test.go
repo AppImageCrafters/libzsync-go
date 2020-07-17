@@ -3,8 +3,6 @@ package zsync
 import (
 	"bytes"
 	"fmt"
-	"github.com/AppImageCrafters/zsync/chunks"
-	"io"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -29,59 +27,6 @@ func TestMain(m *testing.M) {
 var dataDir string = "/tmp/appimage-update"
 var serverUrl string = ""
 
-func TestZSync2_SearchReusableChunks(t *testing.T) {
-	zsyncControl, _ := getControl()
-	zsyncControl.URL = serverUrl + "file"
-
-	zsync := ZSync2{
-		BlockSize:      int64(zsyncControl.BlockSize),
-		checksumsIndex: zsyncControl.ChecksumIndex,
-	}
-
-	chunks, _ := zsync.SearchReusableChunks(dataDir + "/1st_chunk_changed")
-	chunk, _ := <-chunks
-
-	assert.Equal(t, chunk.Size, int64(zsyncControl.BlockSize))
-	assert.Equal(t, chunk.SourceOffset, int64(zsyncControl.BlockSize))
-
-	chunk, _ = <-chunks
-	assert.Equal(t, chunk.Size, int64(60))
-	assert.Equal(t, chunk.SourceOffset, int64(zsyncControl.BlockSize*2))
-
-	_, ok := <-chunks
-	assert.False(t, ok)
-}
-
-func TestZSync2_WriteChunks(t *testing.T) {
-	zsync := ZSync2{
-		BlockSize:      2,
-		checksumsIndex: nil,
-	}
-
-	chunkChan := make(chan chunks.ChunkInfo)
-
-	sourceData := []byte{1, 2}
-	output, err := os.Create(dataDir + "/file_copy")
-	assert.Equal(t, err, nil)
-	defer output.Close()
-
-	go func() {
-		chunkChan <- chunks.ChunkInfo{TargetOffset: 1, Size: 2}
-		close(chunkChan)
-	}()
-
-	err = zsync.WriteChunks(bytes.NewReader(sourceData), output, chunkChan)
-	assert.Equal(t, err, nil)
-
-	// read result
-	output.Seek(0, io.SeekStart)
-	resultData, err := ioutil.ReadAll(output)
-	assert.Equal(t, err, nil)
-
-	expectedData := []byte{0, 1, 2}
-	assert.Equal(t, resultData, expectedData)
-}
-
 func TestSyncChunksDisplaced(t *testing.T) {
 	zsyncControl, _ := getControl()
 	zsyncControl.URL = serverUrl + "file"
@@ -90,7 +35,6 @@ func TestSyncChunksDisplaced(t *testing.T) {
 	if err != nil {
 		return
 	}
-	defer local.Close()
 
 	output := bytes.Buffer{}
 

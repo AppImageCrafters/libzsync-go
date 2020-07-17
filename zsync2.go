@@ -2,6 +2,7 @@ package zsync
 
 import (
 	"fmt"
+	"github.com/AppImageCrafters/zsync/sources"
 	"io"
 	"os"
 
@@ -13,6 +14,54 @@ import (
 type ZSync2 struct {
 	BlockSize      int64
 	checksumsIndex *index.ChecksumIndex
+
+	RemoteFileUrl  string
+	RemoteFileSize int64
+}
+
+func (zsync *ZSync2) Sync(filePath string, output io.WriteSeeker) error {
+	reusableChunks, err := zsync.SearchReusableChunks(filePath)
+	if err != nil {
+		return err
+	}
+
+	input, err := os.Open(filePath)
+	if err != nil {
+		return err
+	}
+
+	chunkMapper := chunks.NewFileChunksMapper(zsync.RemoteFileSize)
+	for chunk := range reusableChunks {
+		err = zsync.WriteChunk(input, output, chunk)
+		if err != nil {
+			return err
+		}
+
+		chunkMapper.Add(chunk)
+	}
+
+	missingChunksSource := sources.HttpFileSource{URL: zsync.RemoteFileUrl, Size: zsync.RemoteFileSize}
+	missingChunks := chunkMapper.GetMissingChunks()
+
+	for _, chunk := range missingChunks {
+		// fetch whole chunk to reduce the number of request
+		_, err = missingChunksSource.Seek(chunk.SourceOffset, io.SeekStart)
+		if err != nil {
+			return err
+		}
+
+		err = missingChunksSource.Request(chunk.Size)
+		if err != nil {
+			return err
+		}
+
+		err = zsync.WriteChunk(&missingChunksSource, output, chunk)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (zsync *ZSync2) SearchReusableChunks(path string) (<-chan chunks.ChunkInfo, error) {
@@ -20,7 +69,6 @@ func (zsync *ZSync2) SearchReusableChunks(path string) (<-chan chunks.ChunkInfo,
 	if err != nil {
 		return nil, err
 	}
-	defer input.Close()
 
 	inputSize, err := zsync.getFileSize(input)
 	if err != nil {
@@ -34,17 +82,15 @@ func (zsync *ZSync2) SearchReusableChunks(path string) (<-chan chunks.ChunkInfo,
 }
 
 func (zsync *ZSync2) getFileSize(input *os.File) (int64, error) {
-	inputSize, err := input.Seek(0, io.SeekEnd)
+	inputStat, err := input.Stat()
 	if err != nil {
 		return -1, err
 	}
 
-	// reset file offset to 0
-	_, _ = input.Seek(0, io.SeekStart)
-	return inputSize, nil
+	return inputStat.Size(), nil
 }
 
-func (zsync *ZSync2) searchReusableChunksAsync(begin int64, end int64, input io.ReadSeeker, chunkChannel chan chunks.ChunkInfo) {
+func (zsync *ZSync2) searchReusableChunksAsync(begin int64, end int64, input io.ReadCloser, chunkChannel chan chunks.ChunkInfo) {
 	nextStep := zsync.BlockSize
 
 	maxOffset := (end / zsync.BlockSize) * zsync.BlockSize
@@ -95,6 +141,7 @@ func (zsync *ZSync2) searchReusableChunksAsync(begin int64, end int64, input io.
 		nextStep = 1
 	}
 
+	_ = input.Close()
 	close(chunkChannel)
 }
 
@@ -105,20 +152,29 @@ func (zsync *ZSync2) WriteChunks(source io.ReadSeeker, output io.WriteSeeker, ch
 			break
 		}
 
-		_, err := source.Seek(chunk.SourceOffset, io.SeekStart)
+		err := zsync.WriteChunk(source, output, chunk)
 		if err != nil {
-			return fmt.Errorf("unable to seek source offset: %d", chunk.SourceOffset)
+			return err
 		}
+	}
 
-		_, err = output.Seek(chunk.TargetOffset, io.SeekStart)
-		if err != nil {
-			return fmt.Errorf("unable to seek target offset: %d", chunk.TargetOffset)
-		}
+	return nil
+}
 
-		_, err = io.CopyN(output, source, chunk.Size)
-		if err != nil {
-			return fmt.Errorf("unable to copy bytes: %s", err.Error())
-		}
+func (zsync *ZSync2) WriteChunk(source io.ReadSeeker, target io.WriteSeeker, chunk chunks.ChunkInfo) error {
+	_, err := source.Seek(chunk.SourceOffset, io.SeekStart)
+	if err != nil {
+		return fmt.Errorf("unable to seek source offset: %d", chunk.SourceOffset)
+	}
+
+	_, err = target.Seek(chunk.TargetOffset, io.SeekStart)
+	if err != nil {
+		return fmt.Errorf("unable to seek target offset: %d", chunk.TargetOffset)
+	}
+
+	n, err := io.CopyN(target, source, chunk.Size)
+	if err != nil {
+		return fmt.Errorf("unable to copy bytes: %d %s", n, err.Error())
 	}
 
 	return nil
