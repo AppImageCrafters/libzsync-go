@@ -2,9 +2,11 @@ package hasedbuffer
 
 import (
 	"encoding/hex"
+	"fmt"
 	"github.com/AppImageCrafters/zsync/rollinghash"
 	"github.com/glycerine/rbuf"
 	"golang.org/x/crypto/md4"
+	"os"
 )
 
 type HashedRingBuffer struct {
@@ -35,12 +37,12 @@ func (h *HashedRingBuffer) Write(p []byte) (n int, err error) {
 		evictedSize = 0
 	}
 
-	evicted := make([]byte, evictedSize)
-	_, _ = h.rBuf.ReadAndMaybeAdvance(evicted, true)
-
 	for i := 0; i < pSize; i++ {
 		if i < evictedSize {
-			h.hash.Update(uint16(p[i]), uint16(evicted[i]))
+			evicted := uint16(h.rBuf.A[h.rBuf.Use][h.rBuf.Beg])
+			h.hash.Update(uint16(p[i]), evicted)
+
+			h.rBuf.Advance(1)
 		} else {
 			h.hash.Update(uint16(p[i]), 0)
 		}
@@ -77,4 +79,8 @@ func (h HashedRingBuffer) CheckSumHex() string {
 	sum := h.CheckSum()
 
 	return hex.EncodeToString(sum)
+}
+
+func (h *HashedRingBuffer) readNFrom(input *os.File, bytes int64) (int64, error) {
+	return -1, fmt.Errorf("not implemented yet")
 }
