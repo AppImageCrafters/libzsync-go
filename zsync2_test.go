@@ -9,6 +9,8 @@ import (
 	"testing"
 
 	"github.com/AppImageCrafters/zsync/chunks"
+	"github.com/AppImageCrafters/zsync/control"
+	"github.com/AppImageCrafters/zsync/sources"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -150,4 +152,55 @@ func BenchmarkZSync2_Sync(t *testing.B) {
 			_ = os.Remove(outputPath)
 		})
 	}
+}
+
+func BenchmarkZSync2_SyncAppImageTool(t *testing.B) {
+	data, err := ioutil.ReadFile("/tmp/appimagetool-x86_64.AppImage.zsync")
+	assert.Nil(t, err)
+
+	zsyncControl, err := control.ParseControl(data)
+	assert.Nil(t, err)
+
+	zsync := ZSync2{
+		BlockSize:      int64(zsyncControl.BlockSize),
+		checksumsIndex: zsyncControl.ChecksumIndex,
+		RemoteFileSize: zsyncControl.FileLength,
+		RemoteFileUrl:  "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage",
+	}
+
+	output, err := os.Create("/tmp/appimagetool-new-x86_64.AppImage")
+	assert.Nil(t, err)
+
+	filePath := "/home/alexis/Downloads/appimagetool-x86_64.AppImage"
+
+	reusableChunks, err := zsync.SearchReusableChunks(filePath)
+	assert.Nil(t, err)
+
+	input, err := os.Open(filePath)
+	assert.Nil(t, err)
+
+	chunkMapper := chunks.NewFileChunksMapper(zsync.RemoteFileSize)
+	for chunk := range reusableChunks {
+		err = zsync.WriteChunk(input, output, chunk)
+		assert.Nil(t, err)
+
+		chunkMapper.Add(chunk)
+	}
+
+	missingChunksSource := sources.HttpFileSource{URL: zsync.RemoteFileUrl, Size: zsync.RemoteFileSize}
+	missingChunks := chunkMapper.GetMissingChunks()
+
+	for _, chunk := range missingChunks {
+		// fetch whole chunk to reduce the number of request
+		_, err = missingChunksSource.Seek(chunk.SourceOffset, io.SeekStart)
+		assert.Nil(t, err)
+
+		err = missingChunksSource.Request(chunk.Size)
+		assert.Nil(t, err)
+
+		err = zsync.WriteChunk(&missingChunksSource, output, chunk)
+		assert.Nil(t, err)
+	}
+
+	assert.Nil(t, err)
 }
