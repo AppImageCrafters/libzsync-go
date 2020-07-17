@@ -58,7 +58,7 @@ func TestZSync2_SearchReusableChunks(t *testing.T) {
 	zsync := ZSync2{
 		BlockSize:      int64(zsyncControl.BlockSize),
 		checksumsIndex: zsyncControl.ChecksumIndex,
-		RemoteFileSize: 4156,
+		RemoteFileSize: zsyncControl.FileLength,
 	}
 
 	var results []chunks.ChunkInfo
@@ -111,4 +111,43 @@ func TestZSync2_WriteChunks(t *testing.T) {
 
 	expectedData := []byte{0, 1, 2}
 	assert.Equal(t, resultData, expectedData)
+}
+
+func BenchmarkZSync2_Sync(t *testing.B) {
+	tests := []string{
+		"/file_displaced",
+		"/1st_chunk_changed",
+		"/2nd_chunk_changed",
+		"/3rd_chunk_changed",
+	}
+
+	for _, tt := range tests {
+		t.Run(tt, func(t *testing.B) {
+			zsyncControl, _ := getControl()
+			zsyncControl.URL = serverUrl + "file"
+
+			zsync := ZSync2{
+				BlockSize:      int64(zsyncControl.BlockSize),
+				checksumsIndex: zsyncControl.ChecksumIndex,
+				RemoteFileUrl:  zsyncControl.URL,
+				RemoteFileSize: zsyncControl.FileLength,
+			}
+
+			outputPath := dataDir + "/file_copy"
+			output, err := os.Create(outputPath)
+			assert.Equal(t, err, nil)
+			defer output.Close()
+
+			err = zsync.Sync(dataDir+tt, output)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			expected, _ := ioutil.ReadFile(dataDir + "/file")
+			result, _ := ioutil.ReadFile(outputPath)
+			assert.Equal(t, expected, result)
+
+			_ = os.Remove(outputPath)
+		})
+	}
 }
