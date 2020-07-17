@@ -30,9 +30,9 @@ func NewHashedBuffer(size int) *HashedRingBuffer {
 
 func (h *HashedRingBuffer) Write(p []byte) (n int, err error) {
 	pSize := len(p)
-	evictedSize := h.rBuf.Readable
-	if evictedSize > pSize {
-		evictedSize = pSize
+	evictedSize := (h.rBuf.Readable + pSize) - h.rBuf.N
+	if evictedSize < 0 {
+		evictedSize = 0
 	}
 
 	evicted := make([]byte, evictedSize)

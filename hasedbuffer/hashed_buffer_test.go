@@ -53,16 +53,16 @@ func TestHashedRingBufferZeoredTerminatedChunk(t *testing.T) {
 	n, _ := buf.Write(data)
 	assert.Equal(t, n, 2048)
 
-	assert.Equal(t, buf.RollingSum(), []byte{184, 11, 76, 102})
+	assert.Equal(t, []byte{184, 11, 76, 102}, buf.RollingSum())
 
 	buf = NewHashedBuffer(2048)
 	n, _ = buf.Write(data[:60])
-	assert.Equal(t, n, 60)
+	assert.Equal(t, 60, n)
 
 	n, _ = buf.Write(data[60:])
-	assert.Equal(t, n, 2048-60)
+	assert.Equal(t, 2048-60, n)
 
-	assert.Equal(t, buf.RollingSum(), []byte{0, 0, 32, 255})
+	assert.Equal(t, []byte{184, 11, 76, 102}, buf.RollingSum())
 }
 
 func TestHashedRingBufferChecksums(t *testing.T) {
