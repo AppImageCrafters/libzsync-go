@@ -5,6 +5,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"sort"
 	"testing"
 
 	"github.com/AppImageCrafters/zsync/chunks"
@@ -57,20 +58,29 @@ func TestZSync2_SearchReusableChunks(t *testing.T) {
 	zsync := ZSync2{
 		BlockSize:      int64(zsyncControl.BlockSize),
 		checksumsIndex: zsyncControl.ChecksumIndex,
+		RemoteFileSize: 4156,
 	}
 
-	chunks, _ := zsync.SearchReusableChunks(dataDir + "/1st_chunk_changed")
-	chunk, _ := <-chunks
+	var results []chunks.ChunkInfo
+	chunkChan, err := zsync.SearchReusableChunks(dataDir + "/1st_chunk_changed")
+	assert.Nil(t, err)
 
-	assert.Equal(t, int64(zsyncControl.BlockSize), chunk.Size)
-	assert.Equal(t, int64(zsyncControl.BlockSize), chunk.SourceOffset)
+	for chunk := range chunkChan {
+		results = append(results, chunk)
+	}
+	sort.SliceStable(results, func(i, j int) bool {
+		return results[i].TargetOffset < results[j].TargetOffset
+	})
 
-	chunk, _ = <-chunks
-	assert.Equal(t, int64(60), chunk.Size)
-	assert.Equal(t, int64(zsyncControl.BlockSize*2), chunk.SourceOffset)
+	if len(results) != 2 {
+		t.Fatalf("2 chunks expected")
+	} else {
+		assert.Equal(t, int64(zsyncControl.BlockSize), results[0].Size)
+		assert.Equal(t, int64(zsyncControl.BlockSize), results[0].SourceOffset)
 
-	_, ok := <-chunks
-	assert.False(t, ok)
+		assert.Equal(t, int64(60), results[1].Size)
+		assert.Equal(t, int64(zsyncControl.BlockSize*2), results[1].SourceOffset)
+	}
 }
 
 func TestZSync2_WriteChunks(t *testing.T) {

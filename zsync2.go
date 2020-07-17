@@ -2,13 +2,15 @@ package zsync
 
 import (
 	"fmt"
-	"github.com/AppImageCrafters/zsync/sources"
 	"io"
 	"os"
+	"runtime"
+	"sync"
 
 	"github.com/AppImageCrafters/zsync/chunks"
 	"github.com/AppImageCrafters/zsync/hasedbuffer"
 	"github.com/AppImageCrafters/zsync/index"
+	"github.com/AppImageCrafters/zsync/sources"
 )
 
 type ZSync2 struct {
@@ -65,24 +67,49 @@ func (zsync *ZSync2) Sync(filePath string, output io.WriteSeeker) error {
 }
 
 func (zsync *ZSync2) SearchReusableChunks(path string) (<-chan chunks.ChunkInfo, error) {
-	input, err := os.Open(path)
+	inputSize, err := zsync.getFileSize(path)
 	if err != nil {
 		return nil, err
 	}
 
-	inputSize, err := zsync.getFileSize(input)
-	if err != nil {
-		return nil, err
+	nChunks := inputSize / zsync.BlockSize
+	if nChunks*zsync.BlockSize < inputSize {
+		nChunks++
 	}
+
+	nWorkers := int64(runtime.NumCPU())
+	if nWorkers > nChunks {
+		nWorkers = nChunks
+	}
+
+	nChunksPerWorker := nChunks / nWorkers
 
 	chunkChannel := make(chan chunks.ChunkInfo)
-	go zsync.searchReusableChunksAsync(0, inputSize, input, chunkChannel)
+	var waitGroup sync.WaitGroup
+
+	waitGroup.Add(int(nWorkers))
+
+	for i := int64(0); i < nWorkers; i++ {
+		begin := i * zsync.BlockSize
+
+		end := begin + nChunksPerWorker*zsync.BlockSize
+		if end > inputSize {
+			end = inputSize
+		}
+
+		go zsync.searchReusableChunksAsync(path, begin, end, chunkChannel, &waitGroup)
+	}
+
+	go func() {
+		waitGroup.Wait()
+		close(chunkChannel)
+	}()
 
 	return chunkChannel, nil
 }
 
-func (zsync *ZSync2) getFileSize(input *os.File) (int64, error) {
-	inputStat, err := input.Stat()
+func (zsync *ZSync2) getFileSize(filePath string) (int64, error) {
+	inputStat, err := os.Stat(filePath)
 	if err != nil {
 		return -1, err
 	}
@@ -90,20 +117,25 @@ func (zsync *ZSync2) getFileSize(input *os.File) (int64, error) {
 	return inputStat.Size(), nil
 }
 
-func (zsync *ZSync2) searchReusableChunksAsync(begin int64, end int64, input io.ReadCloser, chunkChannel chan chunks.ChunkInfo) {
-	nextStep := zsync.BlockSize
+func (zsync *ZSync2) searchReusableChunksAsync(path string, begin int64, end int64, chunksChan chan<- chunks.ChunkInfo, wg *sync.WaitGroup) {
+	defer wg.Done()
 
-	maxOffset := (end / zsync.BlockSize) * zsync.BlockSize
+	input, err := os.Open(path)
+	if err != nil {
+		return
+	}
+
+	_, err = input.Seek(begin, io.SeekStart)
+	if err != nil {
+		return
+	}
+
+	nextStep := zsync.BlockSize
 
 	buf := hasedbuffer.NewHashedBuffer(int(zsync.BlockSize))
 
-	for i := begin; i <= maxOffset; i += nextStep {
-		n, err := io.CopyN(buf, input, nextStep)
-		if err == io.EOF {
-			zeroBuff := make([]byte, nextStep-n)
-			_, err = buf.Write(zeroBuff)
-		}
-
+	for off := begin; off < end; off += nextStep {
+		err := zsync.consumeBytes(buf, input, nextStep)
 		if err != nil {
 			break
 		}
@@ -115,24 +147,10 @@ func (zsync *ZSync2) searchReusableChunksAsync(begin int64, end int64, input io.
 			strongSum := buf.CheckSum()
 			strongMatches := zsync.checksumsIndex.FindStrongChecksum2(strongSum, weakMatches)
 			if strongMatches != nil {
-				for _, match := range strongMatches {
-					newChunk := chunks.ChunkInfo{
-						Size:         zsync.BlockSize,
-						Source:       nil,
-						SourceOffset: i,
-						TargetOffset: int64(match.ChunkOffset) * zsync.BlockSize,
-					}
-
-					// chop zero filled chunks at the end
-					if newChunk.TargetOffset+newChunk.Size > end {
-						newChunk.Size = end - newChunk.TargetOffset
-					}
-
-					chunkChannel <- newChunk
-				}
+				zsync.createChunks(strongMatches, off, end, chunksChan)
 
 				// consume entire block
-				nextStep = int64(zsync.BlockSize)
+				nextStep = zsync.BlockSize
 				continue
 			}
 		}
@@ -142,7 +160,36 @@ func (zsync *ZSync2) searchReusableChunksAsync(begin int64, end int64, input io.
 	}
 
 	_ = input.Close()
-	close(chunkChannel)
+}
+
+func (zsync *ZSync2) consumeBytes(buf *hasedbuffer.HashedRingBuffer, input *os.File, nBytes int64) error {
+	n, err := io.CopyN(buf, input, nBytes)
+
+	// fill missing bytes with 0
+	if err == io.EOF {
+		zeroBuff := make([]byte, nBytes-n)
+		_, err = buf.Write(zeroBuff)
+	}
+
+	return err
+}
+
+func (zsync *ZSync2) createChunks(strongMatches []chunks.ChunkChecksum, offset int64, end int64, chunksChan chan<- chunks.ChunkInfo) {
+	for _, match := range strongMatches {
+		newChunk := chunks.ChunkInfo{
+			Size:         zsync.BlockSize,
+			Source:       nil,
+			SourceOffset: offset,
+			TargetOffset: int64(match.ChunkOffset) * zsync.BlockSize,
+		}
+
+		// chop zero filled chunks at the end
+		if newChunk.TargetOffset+newChunk.Size > zsync.RemoteFileSize {
+			newChunk.Size = zsync.RemoteFileSize - newChunk.TargetOffset
+		}
+
+		chunksChan <- newChunk
+	}
 }
 
 func (zsync *ZSync2) WriteChunks(source io.ReadSeeker, output io.WriteSeeker, chunkChannel <-chan chunks.ChunkInfo) error {
