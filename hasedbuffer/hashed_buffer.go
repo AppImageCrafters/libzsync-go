@@ -71,7 +71,9 @@ func (h HashedRingBuffer) RollingSum() []byte {
 
 func (h HashedRingBuffer) CheckSum() []byte {
 	sumBuilder := md4.New()
-	sumBuilder.Write(h.rBuf.Bytes())
+	slice1, slice2 := h.rBuf.BytesTwo(false)
+	sumBuilder.Write(slice1)
+	sumBuilder.Write(slice2)
 	sum := sumBuilder.Sum(nil)
 
 	return sum
