@@ -46,10 +46,10 @@ func BenchmarkZSync2_Sync(t *testing.B) {
 }
 
 func BenchmarkZSync2_SyncAppImageTool(t *testing.B) {
-	data, err := ioutil.ReadFile("/tmp/appimagetool-x86_64.AppImage.zsync")
+	data, err := os.Open("/tmp/appimagetool-x86_64.AppImage.zsync")
 	assert.Nil(t, err)
 
-	zsyncControl, err := control.ParseControl(data)
+	zsyncControl, err := control.ReadControl(data)
 	assert.Nil(t, err)
 
 	zsync := ZSync{

@@ -31,11 +31,11 @@ var dataDir string = "/tmp/appimage-update"
 var serverUrl string = ""
 
 func getControl() (zsyncControl *control.Control, err error) {
-	data, err := ioutil.ReadFile(dataDir + "/file.zsync")
+	file, err := os.Open(dataDir + "/file.zsync")
 	if err != nil {
 		return nil, err
 	}
-	zsyncControl, err = control.ParseControl(data)
+	zsyncControl, err = control.ReadControl(file)
 	if err != nil {
 		return nil, err
 	}

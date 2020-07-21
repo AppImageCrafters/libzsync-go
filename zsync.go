@@ -14,6 +14,7 @@ See http://zsync.moria.org.uk/
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"runtime"
 	"sync"
@@ -32,6 +33,30 @@ type ZSync struct {
 
 	RemoteFileUrl  string
 	RemoteFileSize int64
+}
+
+func NewZSync(zsyncFileUrl string) (*ZSync, error) {
+	resp, err := http.Get(zsyncFileUrl)
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := control.ReadControl(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = resp.Body.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	return &ZSync{
+		BlockSize:      int64(c.BlockSize),
+		ChecksumsIndex: c.ChecksumIndex,
+		RemoteFileUrl:  c.URL,
+		RemoteFileSize: c.FileLength,
+	}, nil
 }
 
 func NewZSyncFromControl(c *control.Control) *ZSync {

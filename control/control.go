@@ -5,8 +5,9 @@ Control provides parser for the zsync control (.zsync) files.
 */
 
 import (
-	"bytes"
+	"bufio"
 	"fmt"
+	"io"
 	"strconv"
 	"strings"
 
@@ -20,7 +21,7 @@ type ControlHeaderHashLengths struct {
 	StrongCheckSumBytes    uint
 }
 
-type ControlHeader struct {
+type Control struct {
 	Version     string
 	MTime       string
 	FileName    string
@@ -30,93 +31,69 @@ type ControlHeader struct {
 	HashLengths ControlHeaderHashLengths
 	URL         string
 	SHA1        string
-}
-
-type Control struct {
-	ControlHeader
 
 	ChecksumIndex *index.ChecksumIndex
 }
 
-func ParseControl(data []byte) (control *Control, err error) {
-	if len(data) == 0 {
-		return nil, fmt.Errorf("Missing zsync control data")
-	}
-	header, dataStart, err := LoadControlHeader(data)
+func ReadControl(input io.Reader) (control *Control, err error) {
+	control = &Control{}
+	reader := bufio.NewReader(input)
+	err = control.readHeaders(reader)
 	if err != nil {
 		return nil, err
 	}
 
-	dataEnd := uint(dataStart) +
-		header.Blocks*(header.HashLengths.WeakCheckSumBytes+header.HashLengths.StrongCheckSumBytes)
-
-	if int(dataEnd) > len(data) {
-		return nil, fmt.Errorf("missing checksums blocks in control file")
-	}
-
-	control = &Control{header, nil}
-	control.ChecksumIndex, header.Blocks, err = readChecksumIndex(data[dataStart:dataEnd], header)
+	err = control.readChecksums(reader)
 
 	return
 }
 
-func LoadControlHeader(data []byte) (header ControlHeader, dataStart int, err error) {
-	slice := data[:]
-	line_end := bytes.Index(slice, []byte("\n"))
+func (control *Control) readHeaders(reader *bufio.Reader) error {
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return err
+		}
 
-	// the header end is marked by an empty line "\n"
-	for line_end != 0 && line_end != -1 {
-		dataStart += line_end + 1
-		line := string(slice[:line_end])
+		// the header end is marked by an empty line "\n"
+		if line == "\n" {
+			break
+		}
 
 		k, v := parseHeaderLine(line)
-		setHeaderValue(&header, k, v)
-
-		slice = slice[line_end+1:]
-		line_end = bytes.Index(slice, []byte("\n"))
+		setHeaderValue(control, k, v)
 	}
-
-	if line_end >= 0 {
-		dataStart += line_end + 1
-	}
-
-	if header.BlockSize == 0 {
-		return header, dataStart, fmt.Errorf("Malformed zsync control: missing BlockSize ")
-	}
-
-	header.Blocks = (uint(header.FileLength) + header.BlockSize - 1) / header.BlockSize
-
-	return header, dataStart, nil
+	return nil
 }
 
-func setHeaderValue(header *ControlHeader, k string, v string) {
+func setHeaderValue(c *Control, k string, v string) {
 	switch k {
 	case "zsync":
-		header.Version = v
+		c.Version = v
 	case "filename":
-		header.FileName = v
+		c.FileName = v
 	case "mtime":
-		header.MTime = v
+		c.MTime = v
 	case "blocksize":
 		vi, err := strconv.ParseUint(v, 10, 0)
 		if err == nil {
-			header.BlockSize = uint(vi)
+			c.BlockSize = uint(vi)
 		}
 
 	case "length":
 		vi, err := strconv.ParseInt(v, 10, 0)
 		if err == nil {
-			header.FileLength = vi
+			c.FileLength = vi
 		}
 	case "hash-lengths":
 		hashLenghts, err := parseHashLengths(v)
 		if err == nil {
-			header.HashLengths = *hashLenghts
+			c.HashLengths = *hashLenghts
 		}
 	case "url":
-		header.URL = v
+		c.URL = v
 	case "sha-1":
-		header.SHA1 = v
+		c.SHA1 = v
 	default:
 		fmt.Println("Unknown zsync control key: " + k)
 	}
@@ -173,24 +150,22 @@ func parseHeaderLine(line string) (key string, value string) {
 	return key, value
 }
 
-func readChecksumIndex(dataSlice []byte, header ControlHeader) (i *index.ChecksumIndex,
-	blockCount uint,
-	err error) {
-
-	reader := bytes.NewReader(dataSlice)
+func (control *Control) readChecksums(reader io.Reader) error {
 	readChunks, err := chunks.LoadChecksumsFromReaderLegacy(
 		reader,
-		int(header.HashLengths.WeakCheckSumBytes),
-		int(header.HashLengths.StrongCheckSumBytes),
+		int(control.HashLengths.WeakCheckSumBytes),
+		int(control.HashLengths.StrongCheckSumBytes),
 	)
 
 	if err != nil {
-		return
+		return err
 	}
 
-	i = index.MakeChecksumIndex(readChunks,
-		header.HashLengths.WeakCheckSumBytes,
-		header.HashLengths.StrongCheckSumBytes)
-	blockCount = uint(len(readChunks))
-	return
+	control.ChecksumIndex = index.MakeChecksumIndex(readChunks,
+		control.HashLengths.WeakCheckSumBytes,
+		control.HashLengths.StrongCheckSumBytes)
+
+	control.Blocks = uint(control.ChecksumIndex.BlockCount)
+
+	return nil
 }
