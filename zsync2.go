@@ -2,6 +2,7 @@ package zsync
 
 import (
 	"fmt"
+	"github.com/AppImageCrafters/zsync/chunksmapper"
 	"io"
 	"os"
 	"runtime"
@@ -32,7 +33,7 @@ func (zsync *ZSync2) Sync(filePath string, output io.WriteSeeker) error {
 		return err
 	}
 
-	chunkMapper := chunks.NewFileChunksMapper(zsync.RemoteFileSize)
+	chunkMapper := chunksmapper.NewFileChunksMapper(zsync.RemoteFileSize)
 	for chunk := range reusableChunks {
 		err = zsync.WriteChunk(input, output, chunk)
 		if err != nil {

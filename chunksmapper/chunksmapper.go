@@ -1,17 +1,20 @@
-package chunks
+package chunksmapper
 
-import "sort"
+import (
+	"github.com/AppImageCrafters/zsync/chunks"
+	"sort"
+)
 
-type FileChunksMapper struct {
+type ChunksMapper struct {
 	fileSize  int64
-	chunksMap map[int64]ChunkInfo
+	chunksMap map[int64]chunks.ChunkInfo
 }
 
-func NewFileChunksMapper(fileSize int64) *FileChunksMapper {
-	return &FileChunksMapper{fileSize: fileSize, chunksMap: make(map[int64]ChunkInfo)}
+func NewFileChunksMapper(fileSize int64) *ChunksMapper {
+	return &ChunksMapper{fileSize: fileSize, chunksMap: make(map[int64]chunks.ChunkInfo)}
 }
 
-func (mapper *FileChunksMapper) FillChunksMap(chunkChannel <-chan ChunkInfo) {
+func (mapper *ChunksMapper) FillChunksMap(chunkChannel <-chan chunks.ChunkInfo) {
 	for {
 		chunk, ok := <-chunkChannel
 		if ok == false {
@@ -22,8 +25,8 @@ func (mapper *FileChunksMapper) FillChunksMap(chunkChannel <-chan ChunkInfo) {
 	}
 }
 
-func (mapper *FileChunksMapper) GetMappedChunks() []ChunkInfo {
-	var chunkList []ChunkInfo
+func (mapper *ChunksMapper) GetMappedChunks() []chunks.ChunkInfo {
+	var chunkList []chunks.ChunkInfo
 	for _, chk := range mapper.chunksMap {
 		chunkList = append(chunkList, chk)
 	}
@@ -35,14 +38,14 @@ func (mapper *FileChunksMapper) GetMappedChunks() []ChunkInfo {
 	return chunkList
 }
 
-func (mapper *FileChunksMapper) GetMissingChunks() []ChunkInfo {
+func (mapper *ChunksMapper) GetMissingChunks() []chunks.ChunkInfo {
 	chunkList := mapper.GetMappedChunks()
-	var missingChunkList []ChunkInfo
+	var missingChunkList []chunks.ChunkInfo
 
 	pastChunkEnd := int64(0)
 	for _, c := range chunkList {
 		if pastChunkEnd != c.TargetOffset {
-			missingChunkList = append(missingChunkList, ChunkInfo{
+			missingChunkList = append(missingChunkList, chunks.ChunkInfo{
 				Size:         c.TargetOffset - pastChunkEnd,
 				SourceOffset: pastChunkEnd,
 				TargetOffset: pastChunkEnd,
@@ -53,7 +56,7 @@ func (mapper *FileChunksMapper) GetMissingChunks() []ChunkInfo {
 	}
 
 	if pastChunkEnd != mapper.fileSize {
-		missingChunkList = append(missingChunkList, ChunkInfo{
+		missingChunkList = append(missingChunkList, chunks.ChunkInfo{
 			Size:         mapper.fileSize - pastChunkEnd,
 			SourceOffset: pastChunkEnd,
 			TargetOffset: pastChunkEnd,
@@ -63,6 +66,6 @@ func (mapper *FileChunksMapper) GetMissingChunks() []ChunkInfo {
 	return missingChunkList
 }
 
-func (mapper *FileChunksMapper) Add(chunk ChunkInfo) {
+func (mapper *ChunksMapper) Add(chunk chunks.ChunkInfo) {
 	mapper.chunksMap[chunk.TargetOffset] = chunk
 }

@@ -2,6 +2,7 @@ package zsync
 
 import (
 	"bytes"
+	"github.com/AppImageCrafters/zsync/chunksmapper"
 	"io"
 	"io/ioutil"
 	"os"
@@ -179,7 +180,7 @@ func BenchmarkZSync2_SyncAppImageTool(t *testing.B) {
 	input, err := os.Open(filePath)
 	assert.Nil(t, err)
 
-	chunkMapper := chunks.NewFileChunksMapper(zsync.RemoteFileSize)
+	chunkMapper := chunksmapper.NewFileChunksMapper(zsync.RemoteFileSize)
 	for chunk := range reusableChunks {
 		err = zsync.WriteChunk(input, output, chunk)
 		assert.Nil(t, err)
