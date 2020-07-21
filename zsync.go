@@ -158,7 +158,7 @@ func (zsync *ZSync) searchReusableChunksAsync(path string, begin int64, end int6
 			strongSum := buf.CheckSum()
 			strongMatches := zsync.ChecksumsIndex.FindStrongChecksum2(strongSum, weakMatches)
 			if strongMatches != nil {
-				zsync.createChunks(strongMatches, off, end, chunksChan)
+				zsync.createChunks(strongMatches, off, chunksChan)
 
 				// consume entire block
 				nextStep = zsync.BlockSize
@@ -185,7 +185,7 @@ func (zsync *ZSync) consumeBytes(buf *hasedbuffer.HashedRingBuffer, input *os.Fi
 	return err
 }
 
-func (zsync *ZSync) createChunks(strongMatches []chunks.ChunkChecksum, offset int64, end int64, chunksChan chan<- chunks.ChunkInfo) {
+func (zsync *ZSync) createChunks(strongMatches []chunks.ChunkChecksum, offset int64, chunksChan chan<- chunks.ChunkInfo) {
 	for _, match := range strongMatches {
 		newChunk := chunks.ChunkInfo{
 			Size:         zsync.BlockSize,
