@@ -14,7 +14,7 @@ import (
 	"github.com/AppImageCrafters/zsync/sources"
 )
 
-type ZSync2 struct {
+type ZSync struct {
 	BlockSize      int64
 	ChecksumsIndex *index.ChecksumIndex
 
@@ -22,7 +22,7 @@ type ZSync2 struct {
 	RemoteFileSize int64
 }
 
-func (zsync *ZSync2) Sync(filePath string, output io.WriteSeeker) error {
+func (zsync *ZSync) Sync(filePath string, output io.WriteSeeker) error {
 	reusableChunks, err := zsync.SearchReusableChunks(filePath)
 	if err != nil {
 		return err
@@ -67,7 +67,7 @@ func (zsync *ZSync2) Sync(filePath string, output io.WriteSeeker) error {
 	return nil
 }
 
-func (zsync *ZSync2) SearchReusableChunks(path string) (<-chan chunks.ChunkInfo, error) {
+func (zsync *ZSync) SearchReusableChunks(path string) (<-chan chunks.ChunkInfo, error) {
 	inputSize, err := zsync.getFileSize(path)
 	if err != nil {
 		return nil, err
@@ -109,7 +109,7 @@ func (zsync *ZSync2) SearchReusableChunks(path string) (<-chan chunks.ChunkInfo,
 	return chunkChannel, nil
 }
 
-func (zsync *ZSync2) getFileSize(filePath string) (int64, error) {
+func (zsync *ZSync) getFileSize(filePath string) (int64, error) {
 	inputStat, err := os.Stat(filePath)
 	if err != nil {
 		return -1, err
@@ -118,7 +118,7 @@ func (zsync *ZSync2) getFileSize(filePath string) (int64, error) {
 	return inputStat.Size(), nil
 }
 
-func (zsync *ZSync2) searchReusableChunksAsync(path string, begin int64, end int64, chunksChan chan<- chunks.ChunkInfo, wg *sync.WaitGroup) {
+func (zsync *ZSync) searchReusableChunksAsync(path string, begin int64, end int64, chunksChan chan<- chunks.ChunkInfo, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	input, err := os.Open(path)
@@ -163,7 +163,7 @@ func (zsync *ZSync2) searchReusableChunksAsync(path string, begin int64, end int
 	_ = input.Close()
 }
 
-func (zsync *ZSync2) consumeBytes(buf *hasedbuffer.HashedRingBuffer, input *os.File, nBytes int64) error {
+func (zsync *ZSync) consumeBytes(buf *hasedbuffer.HashedRingBuffer, input *os.File, nBytes int64) error {
 	n, err := buf.ReadNFrom(input, nBytes)
 
 	// fill missing bytes with 0
@@ -175,7 +175,7 @@ func (zsync *ZSync2) consumeBytes(buf *hasedbuffer.HashedRingBuffer, input *os.F
 	return err
 }
 
-func (zsync *ZSync2) createChunks(strongMatches []chunks.ChunkChecksum, offset int64, end int64, chunksChan chan<- chunks.ChunkInfo) {
+func (zsync *ZSync) createChunks(strongMatches []chunks.ChunkChecksum, offset int64, end int64, chunksChan chan<- chunks.ChunkInfo) {
 	for _, match := range strongMatches {
 		newChunk := chunks.ChunkInfo{
 			Size:         zsync.BlockSize,
@@ -193,7 +193,7 @@ func (zsync *ZSync2) createChunks(strongMatches []chunks.ChunkChecksum, offset i
 	}
 }
 
-func (zsync *ZSync2) WriteChunks(source io.ReadSeeker, output io.WriteSeeker, chunkChannel <-chan chunks.ChunkInfo) error {
+func (zsync *ZSync) WriteChunks(source io.ReadSeeker, output io.WriteSeeker, chunkChannel <-chan chunks.ChunkInfo) error {
 	for {
 		chunk, ok := <-chunkChannel
 		if ok == false {
@@ -209,7 +209,7 @@ func (zsync *ZSync2) WriteChunks(source io.ReadSeeker, output io.WriteSeeker, ch
 	return nil
 }
 
-func (zsync *ZSync2) WriteChunk(source io.ReadSeeker, target io.WriteSeeker, chunk chunks.ChunkInfo) error {
+func (zsync *ZSync) WriteChunk(source io.ReadSeeker, target io.WriteSeeker, chunk chunks.ChunkInfo) error {
 	_, err := source.Seek(chunk.SourceOffset, io.SeekStart)
 	if err != nil {
 		return fmt.Errorf("unable to seek source offset: %d", chunk.SourceOffset)

@@ -152,7 +152,7 @@ func TestZSync2_Sync(t *testing.T) {
 			zsyncControl, _ := getControl()
 			zsyncControl.URL = serverUrl + "file"
 
-			zsync := ZSync2{
+			zsync := ZSync{
 				BlockSize:      int64(zsyncControl.BlockSize),
 				ChecksumsIndex: zsyncControl.ChecksumIndex,
 				RemoteFileUrl:  zsyncControl.URL,
@@ -182,7 +182,7 @@ func TestZSync2_SearchReusableChunks(t *testing.T) {
 	zsyncControl, _ := getControl()
 	zsyncControl.URL = serverUrl + "file"
 
-	zsync := ZSync2{
+	zsync := ZSync{
 		BlockSize:      int64(zsyncControl.BlockSize),
 		ChecksumsIndex: zsyncControl.ChecksumIndex,
 		RemoteFileSize: zsyncControl.FileLength,
@@ -211,7 +211,7 @@ func TestZSync2_SearchReusableChunks(t *testing.T) {
 }
 
 func TestZSync2_WriteChunks(t *testing.T) {
-	zsync := ZSync2{
+	zsync := ZSync{
 		BlockSize:      2,
 		ChecksumsIndex: nil,
 	}
@@ -253,7 +253,7 @@ func BenchmarkZSync2_Sync(t *testing.B) {
 			zsyncControl, _ := getControl()
 			zsyncControl.URL = serverUrl + "file"
 
-			zsync := ZSync2{
+			zsync := ZSync{
 				BlockSize:      int64(zsyncControl.BlockSize),
 				ChecksumsIndex: zsyncControl.ChecksumIndex,
 				RemoteFileUrl:  zsyncControl.URL,
@@ -286,7 +286,7 @@ func BenchmarkZSync2_SyncAppImageTool(t *testing.B) {
 	zsyncControl, err := control.ParseControl(data)
 	assert.Nil(t, err)
 
-	zsync := ZSync2{
+	zsync := ZSync{
 		BlockSize:      int64(zsyncControl.BlockSize),
 		ChecksumsIndex: zsyncControl.ChecksumIndex,
 		RemoteFileSize: zsyncControl.FileLength,
