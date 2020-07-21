@@ -75,7 +75,7 @@ func downloadFile(filepath string, url string) error {
 func setup() {
 	dataDir := generateTestDataDir()
 	downloadFile("/tmp/appimagetool-x86_64.AppImage.zsync", "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage.zsync")
-	downloadFile("/tmp/appimagetool-new-x86_64.AppImage", "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage")
+	downloadFile("/tmp/appimagetool-x86_64.AppImage", "https://github.com/AppImage/AppImageKit/releases/download/12/appimagetool-x86_64.AppImage")
 	serve(dataDir)
 }
 
@@ -296,7 +296,7 @@ func BenchmarkZSync2_SyncAppImageTool(t *testing.B) {
 	output, err := os.Create("/tmp/appimagetool-new-x86_64.AppImage")
 	assert.Nil(t, err)
 
-	filePath := "/home/alexis/Downloads/appimagetool-x86_64.AppImage"
+	filePath := "/tmp/appimagetool-x86_64.AppImage"
 
 	reusableChunks, err := zsync.SearchReusableChunks(filePath)
 	assert.Nil(t, err)
