@@ -224,7 +224,7 @@ func TestZSync2_WriteChunks(t *testing.T) {
 			break
 		}
 
-		err := zsync.writeChunk(sourceDataReader, output, chunk)
+		err := zsync.WriteChunk(sourceDataReader, output, chunk)
 		assert.Equal(t, err, nil)
 	}
 
