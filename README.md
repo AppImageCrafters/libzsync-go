@@ -1,2 +1,5 @@
-# zsync
-Zsync implementation in Golang
+# libzsync-go
+
+libzsync implementation in Golang
+
+See http://zsync.moria.org.uk/

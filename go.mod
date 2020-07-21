@@ -1,4 +1,4 @@
-module github.com/AppImageCrafters/zsync
+module github.com/AppImageCrafters/libzsync-go
 
 go 1.13
 
