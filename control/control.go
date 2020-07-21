@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"github.com/AppImageCrafters/zsync/chunks"
-	"github.com/AppImageCrafters/zsync/filechecksum"
 	"github.com/AppImageCrafters/zsync/index"
 )
 
@@ -36,8 +35,7 @@ type ControlHeader struct {
 type Control struct {
 	ControlHeader
 
-	ChecksumIndex  *index.ChecksumIndex
-	ChecksumLookup filechecksum.ChecksumLookup
+	ChecksumIndex *index.ChecksumIndex
 }
 
 func ParseControl(data []byte) (control *Control, err error) {
@@ -56,8 +54,8 @@ func ParseControl(data []byte) (control *Control, err error) {
 		return nil, fmt.Errorf("missing checksums blocks in control file")
 	}
 
-	control = &Control{header, nil, nil}
-	control.ChecksumIndex, control.ChecksumLookup, header.Blocks, err = readChecksumIndex(data[dataStart:dataEnd], header)
+	control = &Control{header, nil}
+	control.ChecksumIndex, header.Blocks, err = readChecksumIndex(data[dataStart:dataEnd], header)
 
 	return
 }
@@ -176,7 +174,6 @@ func parseHeaderLine(line string) (key string, value string) {
 }
 
 func readChecksumIndex(dataSlice []byte, header ControlHeader) (i *index.ChecksumIndex,
-	checksumLookup filechecksum.ChecksumLookup,
 	blockCount uint,
 	err error) {
 
@@ -191,7 +188,6 @@ func readChecksumIndex(dataSlice []byte, header ControlHeader) (i *index.Checksu
 		return
 	}
 
-	checksumLookup = chunks.StrongChecksumGetter(readChunks)
 	i = index.MakeChecksumIndex(readChunks,
 		header.HashLengths.WeakCheckSumBytes,
 		header.HashLengths.StrongCheckSumBytes)

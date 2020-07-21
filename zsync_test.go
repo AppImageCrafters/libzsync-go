@@ -1,7 +1,6 @@
 package zsync
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,7 +14,6 @@ import (
 	"time"
 
 	"github.com/AppImageCrafters/zsync/control"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
@@ -27,89 +25,6 @@ func TestMain(m *testing.M) {
 
 var dataDir string = "/tmp/appimage-update"
 var serverUrl string = ""
-
-func TestSyncChunksDisplaced(t *testing.T) {
-	zsyncControl, _ := getControl()
-	zsyncControl.URL = serverUrl + "file"
-
-	local, err := os.Open(dataDir + "/file_displaced")
-	if err != nil {
-		return
-	}
-
-	output := bytes.Buffer{}
-
-	err = Sync(local, &output, *zsyncControl, NewDummyProgressReporter())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected, _ := ioutil.ReadFile(dataDir + "/file")
-	assert.Equal(t, expected, output.Bytes())
-}
-
-func TestSync1stChunkChanged(t *testing.T) {
-	zsyncControl, _ := getControl()
-	zsyncControl.URL = serverUrl + "file"
-
-	local, err := os.Open(dataDir + "/1st_chunk_changed")
-	if err != nil {
-		return
-	}
-	defer local.Close()
-
-	output := bytes.Buffer{}
-
-	err = Sync(local, &output, *zsyncControl, NewDummyProgressReporter())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected, _ := ioutil.ReadFile(dataDir + "/file")
-	assert.Equal(t, expected, output.Bytes())
-}
-
-func TestSync2ndChunkChanged(t *testing.T) {
-	zsyncControl, _ := getControl()
-	zsyncControl.URL = serverUrl + "file"
-
-	local, err := os.Open(dataDir + "/2nd_chunk_changed")
-	if err != nil {
-		return
-	}
-	defer local.Close()
-
-	output := bytes.Buffer{}
-
-	err = Sync(local, &output, *zsyncControl, NewDummyProgressReporter())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected, _ := ioutil.ReadFile(dataDir + "/file")
-	assert.Equal(t, expected, output.Bytes())
-}
-
-func TestSync3rdChunkChanged(t *testing.T) {
-	zsyncControl, _ := getControl()
-	zsyncControl.URL = serverUrl + "file"
-
-	local, err := os.Open(dataDir + "/3rd_chunk_changed")
-	if err != nil {
-		return
-	}
-	defer local.Close()
-
-	output := bytes.Buffer{}
-
-	err = Sync(local, &output, *zsyncControl, NewDummyProgressReporter())
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	expected, _ := ioutil.ReadFile(dataDir + "/file")
-	assert.Equal(t, expected, output.Bytes())
-}
 
 func getControl() (zsyncControl *control.Control, err error) {
 	data, err := ioutil.ReadFile(dataDir + "/file.zsync")
