@@ -203,22 +203,6 @@ func (zsync *ZSync) createChunks(strongMatches []chunks.ChunkChecksum, offset in
 	}
 }
 
-func (zsync *ZSync) WriteChunks(source io.ReadSeeker, output io.WriteSeeker, chunkChannel <-chan chunks.ChunkInfo) error {
-	for {
-		chunk, ok := <-chunkChannel
-		if ok == false {
-			break
-		}
-
-		err := zsync.writeChunk(source, output, chunk)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 func (zsync *ZSync) writeChunk(source io.ReadSeeker, target io.WriteSeeker, chunk chunks.ChunkInfo) error {
 	_, err := source.Seek(chunk.SourceOffset, io.SeekStart)
 	if err != nil {

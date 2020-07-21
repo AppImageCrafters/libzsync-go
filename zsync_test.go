@@ -217,8 +217,16 @@ func TestZSync2_WriteChunks(t *testing.T) {
 		close(chunkChan)
 	}()
 
-	err = zsync.WriteChunks(bytes.NewReader(sourceData), output, chunkChan)
-	assert.Equal(t, err, nil)
+	sourceDataReader := bytes.NewReader(sourceData)
+	for {
+		chunk, ok := <-chunkChan
+		if ok == false {
+			break
+		}
+
+		err := zsync.writeChunk(sourceDataReader, output, chunk)
+		assert.Equal(t, err, nil)
+	}
 
 	// read result
 	output.Seek(0, io.SeekStart)
