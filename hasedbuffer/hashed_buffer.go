@@ -5,7 +5,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/AppImageCrafters/zsync/rollinghash"
+	"github.com/AppImageCrafters/libzsync-go/rollinghash"
 
 	"github.com/glycerine/rbuf"
 	"golang.org/x/crypto/md4"

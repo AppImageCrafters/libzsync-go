@@ -25,7 +25,7 @@ package index
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/AppImageCrafters/zsync/chunks"
+	"github.com/AppImageCrafters/libzsync-go/chunks"
 	"sort"
 )
 

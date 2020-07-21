@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/AppImageCrafters/zsync/chunks"
-	"github.com/AppImageCrafters/zsync/index"
+	"github.com/AppImageCrafters/libzsync-go/chunks"
+	"github.com/AppImageCrafters/libzsync-go/index"
 )
 
 type ControlHeaderHashLengths struct {

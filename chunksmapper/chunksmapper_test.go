@@ -1,7 +1,7 @@
 package chunksmapper
 
 import (
-	"github.com/AppImageCrafters/zsync/chunks"
+	"github.com/AppImageCrafters/libzsync-go/chunks"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

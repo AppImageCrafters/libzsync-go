@@ -13,17 +13,17 @@ See http://zsync.moria.org.uk/
 
 import (
 	"fmt"
-	"github.com/AppImageCrafters/zsync/chunksmapper"
-	"github.com/AppImageCrafters/zsync/control"
 	"io"
 	"os"
 	"runtime"
 	"sync"
 
-	"github.com/AppImageCrafters/zsync/chunks"
-	"github.com/AppImageCrafters/zsync/hasedbuffer"
-	"github.com/AppImageCrafters/zsync/index"
-	"github.com/AppImageCrafters/zsync/sources"
+	"github.com/AppImageCrafters/libzsync-go/chunks"
+	"github.com/AppImageCrafters/libzsync-go/chunksmapper"
+	"github.com/AppImageCrafters/libzsync-go/control"
+	"github.com/AppImageCrafters/libzsync-go/hasedbuffer"
+	"github.com/AppImageCrafters/libzsync-go/index"
+	"github.com/AppImageCrafters/libzsync-go/sources"
 )
 
 type ZSync struct {

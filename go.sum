@@ -1,3 +1,5 @@
+github.com/AppImageCrafters/zsync v0.1.4 h1:auVtVzj+3qII5WXBVPIuTq7YIHCmr9vlWJJEvkVloaA=
+github.com/AppImageCrafters/zsync v0.1.4/go.mod h1:GlIuJzFA+iid38KFqzSka8TVDzTLW0u2w4NzvPmeYg0=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
