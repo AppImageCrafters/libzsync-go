@@ -152,12 +152,7 @@ func TestZSync2_Sync(t *testing.T) {
 			zsyncControl, _ := getControl()
 			zsyncControl.URL = serverUrl + "file"
 
-			zsync := ZSync{
-				BlockSize:      int64(zsyncControl.BlockSize),
-				ChecksumsIndex: zsyncControl.ChecksumIndex,
-				RemoteFileUrl:  zsyncControl.URL,
-				RemoteFileSize: zsyncControl.FileLength,
-			}
+			zsync := NewZSyncFromControl(zsyncControl)
 
 			outputPath := dataDir + "/file_copy"
 			output, err := os.Create(outputPath)
@@ -182,11 +177,7 @@ func TestZSync2_SearchReusableChunks(t *testing.T) {
 	zsyncControl, _ := getControl()
 	zsyncControl.URL = serverUrl + "file"
 
-	zsync := ZSync{
-		BlockSize:      int64(zsyncControl.BlockSize),
-		ChecksumsIndex: zsyncControl.ChecksumIndex,
-		RemoteFileSize: zsyncControl.FileLength,
-	}
+	zsync := NewZSyncFromControl(zsyncControl)
 
 	var results []chunks.ChunkInfo
 	chunkChan, err := zsync.SearchReusableChunks(dataDir + "/1st_chunk_changed")
@@ -253,12 +244,7 @@ func BenchmarkZSync2_Sync(t *testing.B) {
 			zsyncControl, _ := getControl()
 			zsyncControl.URL = serverUrl + "file"
 
-			zsync := ZSync{
-				BlockSize:      int64(zsyncControl.BlockSize),
-				ChecksumsIndex: zsyncControl.ChecksumIndex,
-				RemoteFileUrl:  zsyncControl.URL,
-				RemoteFileSize: zsyncControl.FileLength,
-			}
+			zsync := NewZSyncFromControl(zsyncControl)
 
 			outputPath := dataDir + "/file_copy"
 			output, err := os.Create(outputPath)

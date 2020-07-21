@@ -3,6 +3,7 @@ package zsync
 import (
 	"fmt"
 	"github.com/AppImageCrafters/zsync/chunksmapper"
+	"github.com/AppImageCrafters/zsync/control"
 	"io"
 	"os"
 	"runtime"
@@ -20,6 +21,15 @@ type ZSync struct {
 
 	RemoteFileUrl  string
 	RemoteFileSize int64
+}
+
+func NewZSyncFromControl(c *control.Control) *ZSync {
+	return &ZSync{
+		BlockSize:      int64(c.BlockSize),
+		ChecksumsIndex: c.ChecksumIndex,
+		RemoteFileUrl:  c.URL,
+		RemoteFileSize: c.FileLength,
+	}
 }
 
 func (zsync *ZSync) Sync(filePath string, output io.WriteSeeker) error {
