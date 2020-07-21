@@ -72,7 +72,7 @@ func BenchmarkZSync2_SyncAppImageTool(t *testing.B) {
 
 	chunkMapper := chunksmapper.NewFileChunksMapper(zsync.RemoteFileSize)
 	for chunk := range reusableChunks {
-		err = zsync.WriteChunk(input, output, chunk)
+		err = zsync.writeChunk(input, output, chunk)
 		assert.Nil(t, err)
 
 		chunkMapper.Add(chunk)
@@ -89,7 +89,7 @@ func BenchmarkZSync2_SyncAppImageTool(t *testing.B) {
 		err = missingChunksSource.Request(chunk.Size)
 		assert.Nil(t, err)
 
-		err = zsync.WriteChunk(&missingChunksSource, output, chunk)
+		err = zsync.writeChunk(&missingChunksSource, output, chunk)
 		assert.Nil(t, err)
 	}
 

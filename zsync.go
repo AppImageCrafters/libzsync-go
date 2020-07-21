@@ -45,7 +45,7 @@ func (zsync *ZSync) Sync(filePath string, output io.WriteSeeker) error {
 
 	chunkMapper := chunksmapper.NewFileChunksMapper(zsync.RemoteFileSize)
 	for chunk := range reusableChunks {
-		err = zsync.WriteChunk(input, output, chunk)
+		err = zsync.writeChunk(input, output, chunk)
 		if err != nil {
 			return err
 		}
@@ -68,7 +68,7 @@ func (zsync *ZSync) Sync(filePath string, output io.WriteSeeker) error {
 			return err
 		}
 
-		err = zsync.WriteChunk(&missingChunksSource, output, chunk)
+		err = zsync.writeChunk(&missingChunksSource, output, chunk)
 		if err != nil {
 			return err
 		}
@@ -210,7 +210,7 @@ func (zsync *ZSync) WriteChunks(source io.ReadSeeker, output io.WriteSeeker, chu
 			break
 		}
 
-		err := zsync.WriteChunk(source, output, chunk)
+		err := zsync.writeChunk(source, output, chunk)
 		if err != nil {
 			return err
 		}
@@ -219,7 +219,7 @@ func (zsync *ZSync) WriteChunks(source io.ReadSeeker, output io.WriteSeeker, chu
 	return nil
 }
 
-func (zsync *ZSync) WriteChunk(source io.ReadSeeker, target io.WriteSeeker, chunk chunks.ChunkInfo) error {
+func (zsync *ZSync) writeChunk(source io.ReadSeeker, target io.WriteSeeker, chunk chunks.ChunkInfo) error {
 	_, err := source.Seek(chunk.SourceOffset, io.SeekStart)
 	if err != nil {
 		return fmt.Errorf("unable to seek source offset: %d", chunk.SourceOffset)
