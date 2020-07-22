@@ -18,6 +18,7 @@ func BenchmarkZSync2_Sync(t *testing.B) {
 		"/2nd_chunk_changed",
 		"/3rd_chunk_changed",
 		"/all_changed",
+		"/large_file",
 	}
 
 	for _, tt := range tests {

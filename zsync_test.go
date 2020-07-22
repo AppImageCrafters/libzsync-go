@@ -101,6 +101,7 @@ func generateTestDataDir() string {
 	_ = GenerateSampleFile([]byte("0x23456789"), 2048*2+60, 0, dataDir+"/2nd_chunk_changed")
 	_ = GenerateSampleFile([]byte("01x3456789"), 2048*2+60, 0, dataDir+"/3rd_chunk_changed")
 	_ = GenerateSampleFile([]byte("abc3456789"), 2048*2+60, 0, dataDir+"/all_changed")
+	_ = GenerateSampleFile([]byte("abc3456789"), 2048*200+60, 0, dataDir+"/large_file")
 
 	return dataDir
 }
