@@ -17,6 +17,7 @@ func BenchmarkZSync2_Sync(t *testing.B) {
 		"/1st_chunk_changed",
 		"/2nd_chunk_changed",
 		"/3rd_chunk_changed",
+		"/all_changed",
 	}
 
 	for _, tt := range tests {

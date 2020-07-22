@@ -100,6 +100,7 @@ func generateTestDataDir() string {
 	_ = GenerateSampleFile([]byte("x123456789"), 2048*2+60, 0, dataDir+"/1st_chunk_changed")
 	_ = GenerateSampleFile([]byte("0x23456789"), 2048*2+60, 0, dataDir+"/2nd_chunk_changed")
 	_ = GenerateSampleFile([]byte("01x3456789"), 2048*2+60, 0, dataDir+"/3rd_chunk_changed")
+	_ = GenerateSampleFile([]byte("abc3456789"), 2048*2+60, 0, dataDir+"/all_changed")
 
 	return dataDir
 }
@@ -143,6 +144,7 @@ func TestZSync2_Sync(t *testing.T) {
 		"/1st_chunk_changed",
 		"/2nd_chunk_changed",
 		"/3rd_chunk_changed",
+		"/all_changed",
 	}
 
 	for _, tt := range tests {
