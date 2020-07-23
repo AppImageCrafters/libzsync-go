@@ -117,3 +117,27 @@ func TestHashedRingBuffer_ReadFull(t *testing.T) {
 	assert.Equal(t, []byte{12, 13, 14, 15}, buf.Bytes())
 	assert.Equal(t, []byte{54, 0, 238, 0}, buf.RollingSum())
 }
+
+func TestHashedRingBuffer_ReadByte(t *testing.T) {
+	data := []byte{0, 1, 2}
+	dataReader := bytes.NewReader(data)
+
+	const chunkSize = 2
+	buf := NewHashedBuffer(chunkSize)
+
+	n, err := buf.ReadFull(dataReader)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(2), n)
+	assert.Equal(t, []byte{0, 1}, buf.Bytes())
+	assert.Equal(t, []byte{1, 0, 1, 0}, buf.RollingSum())
+
+	_, err = buf.ReadByte(dataReader)
+	assert.Nil(t, err)
+	assert.Equal(t, []byte{1, 2}, buf.Bytes())
+	assert.Equal(t, []byte{3, 0, 4, 0}, buf.RollingSum())
+
+	_, err = buf.ReadByte(dataReader)
+	assert.Nil(t, err)
+	assert.Equal(t, []byte{2}, buf.Bytes())
+	assert.Equal(t, []byte{2, 0, 4, 0}, buf.RollingSum())
+}

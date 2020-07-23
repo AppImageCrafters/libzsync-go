@@ -108,6 +108,26 @@ func (h *HashedRingBuffer) ReadNFrom(input io.Reader, bytes int64) (int64, error
 	return n, readErr
 }
 
+// Reads one byte from input
+func (h *HashedRingBuffer) ReadByte(input io.Reader) (byte, error) {
+	evicted := uint16(0)
+	if h.rBuf.First() != -1 {
+		evicted = uint16(h.rBuf.A[h.rBuf.Use][h.rBuf.First()])
+		h.rBuf.Advance(1)
+	}
+
+	n, err := h.rBuf.ReadFrom(input)
+	if n > 0 {
+		newChar := uint16(h.rBuf.A[h.rBuf.Use][h.rBuf.Last()])
+		h.hash.Update(newChar, evicted)
+
+		return byte(newChar), err
+	} else {
+		h.hash.Update(0, evicted)
+		return 0, err
+	}
+}
+
 // Read the complete buffer from input, missing bytes are replaced by '0'
 func (h *HashedRingBuffer) ReadFull(input io.Reader) (int64, error) {
 	h.rBuf.Reset()
