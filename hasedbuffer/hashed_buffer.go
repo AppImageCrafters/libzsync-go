@@ -2,13 +2,10 @@ package hasedbuffer
 
 import (
 	"encoding/hex"
-	"io"
-	"os"
-
 	"github.com/AppImageCrafters/libzsync-go/rollinghash"
-
 	"github.com/glycerine/rbuf"
 	"golang.org/x/crypto/md4"
+	"io"
 )
 
 type HashedRingBuffer struct {
@@ -85,7 +82,7 @@ func (h HashedRingBuffer) CheckSumHex() string {
 	return hex.EncodeToString(sum)
 }
 
-func (h *HashedRingBuffer) ReadNFrom(input *os.File, bytes int64) (int64, error) {
+func (h *HashedRingBuffer) ReadNFrom(input io.Reader, bytes int64) (int64, error) {
 	newBytesIdx := h.rBuf.Last() + 1
 	n, readErr := h.rBuf.ReadFrom(io.LimitReader(input, bytes))
 	evictedSize := h.rBuf.Readable - h.rBuf.N
@@ -109,4 +106,27 @@ func (h *HashedRingBuffer) ReadNFrom(input *os.File, bytes int64) (int64, error)
 	}
 
 	return n, readErr
+}
+
+// Read the complete buffer from input, missing bytes are replaced by '0'
+func (h *HashedRingBuffer) ReadFull(input io.Reader) (int64, error) {
+	h.rBuf.Reset()
+	h.hash.Reset()
+
+	newCharIdx := h.rBuf.Beg + h.rBuf.Readable
+	n, err := h.rBuf.ReadFrom(input)
+
+	missingChars := uint16(h.rBuf.N) - uint16(n)
+	for rsunLen := uint16(h.rBuf.N); rsunLen > missingChars; rsunLen-- {
+		newChar := uint16(h.rBuf.A[h.rBuf.Use][newCharIdx])
+		newCharIdx = h.rBuf.Nextpos(newCharIdx)
+
+		h.hash.Append(newChar, rsunLen)
+	}
+
+	for ; missingChars > 0; missingChars-- {
+		h.hash.Append(0, missingChars)
+	}
+
+	return n, err
 }

@@ -2,12 +2,12 @@ package hasedbuffer
 
 import (
 	"bytes"
-	"github.com/glycerine/rbuf"
-	"golang.org/x/crypto/md4"
 	"io"
 	"testing"
 
+	"github.com/glycerine/rbuf"
 	"github.com/stretchr/testify/assert"
+	"golang.org/x/crypto/md4"
 )
 
 func TestHashedBuffer_Write(t *testing.T) {
@@ -90,4 +90,30 @@ func TestHashedRingBufferChecksums(t *testing.T) {
 		assert.Equal(t, expectedChecksums[i], checkSum)
 	}
 
+}
+
+func TestHashedRingBuffer_ReadFull(t *testing.T) {
+	data := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+	dataReader := bytes.NewReader(data)
+
+	const chunkSize = 6
+	buf := NewHashedBuffer(chunkSize)
+
+	n, err := buf.ReadFull(dataReader)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(6), n)
+	assert.Equal(t, []byte{0, 1, 2, 3, 4, 5}, buf.Bytes())
+	assert.Equal(t, []byte{15, 0, 35, 0}, buf.RollingSum())
+
+	n, err = buf.ReadFull(dataReader)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(6), n)
+	assert.Equal(t, []byte{6, 7, 8, 9, 10, 11}, buf.Bytes())
+	assert.Equal(t, []byte{51, 0, 161, 0}, buf.RollingSum())
+
+	n, err = buf.ReadFull(dataReader)
+	assert.Nil(t, err)
+	assert.Equal(t, int64(4), n)
+	assert.Equal(t, []byte{12, 13, 14, 15}, buf.Bytes())
+	assert.Equal(t, []byte{54, 0, 238, 0}, buf.RollingSum())
 }
