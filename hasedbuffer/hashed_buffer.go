@@ -1,6 +1,7 @@
 package hasedbuffer
 
 import (
+	"bytes"
 	"encoding/hex"
 	"github.com/AppImageCrafters/libzsync-go/rollinghash"
 	"github.com/glycerine/rbuf"
@@ -137,15 +138,13 @@ func (h *HashedRingBuffer) ReadFull(input io.Reader) (int64, error) {
 	n, err := h.rBuf.ReadFrom(input)
 
 	missingChars := uint16(h.rBuf.N) - uint16(n)
-	for rsunLen := uint16(h.rBuf.N); rsunLen > missingChars; rsunLen-- {
+	_, _ = h.rBuf.ReadFrom(bytes.NewBuffer(make([]byte, missingChars)))
+
+	for i := uint16(h.rBuf.N); i > 0; i-- {
 		newChar := uint16(h.rBuf.A[h.rBuf.Use][newCharIdx])
 		newCharIdx = h.rBuf.Nextpos(newCharIdx)
 
-		h.hash.Append(newChar, rsunLen)
-	}
-
-	for ; missingChars > 0; missingChars-- {
-		h.hash.Append(0, missingChars)
+		h.hash.Append(newChar, i)
 	}
 
 	return n, err

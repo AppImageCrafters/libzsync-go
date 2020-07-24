@@ -18,12 +18,17 @@ func (r *RollingHash) PutSum(b []byte) {
 	binary.LittleEndian.PutUint32(b, value)
 }
 
-func (r *RollingHash) Append(c byte, len uint16) {
-	r.a += uint16(c)
-	r.b += len * uint16(c)
+func (r *RollingHash) Append(c uint16, len uint16) {
+	r.a += c
+	r.b += len * c
 }
 
 func (r *RollingHash) Update(newC uint16, oldC uint16) {
 	r.a += newC - oldC
 	r.b += r.a - oldC<<r.shift
+}
+
+func (r *RollingHash) Reset() {
+	r.a = 0
+	r.b = 0
 }

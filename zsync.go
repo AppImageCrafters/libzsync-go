@@ -210,15 +210,19 @@ func (zsync *ZSync) searchReusableChunksAsync(path string, begin int64, end int6
 }
 
 func (zsync *ZSync) consumeBytes(buf *hasedbuffer.HashedRingBuffer, input *os.File, nBytes int64) error {
-	n, err := buf.ReadNFrom(input, nBytes)
-
-	// fill missing bytes with 0
-	if n != nBytes {
-		zeroBuff := make([]byte, nBytes-n)
-		_, err = buf.Write(zeroBuff)
+	if nBytes == zsync.BlockSize {
+		_, err := buf.ReadFull(input)
+		return err
+	} else {
+		for i := int64(0); i < nBytes; i++ {
+			_, err := buf.ReadByte(input)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
-	return err
+	return nil
 }
 
 func (zsync *ZSync) createChunks(strongMatches []chunks.ChunkChecksum, offset int64, chunksChan chan<- chunks.ChunkInfo) {

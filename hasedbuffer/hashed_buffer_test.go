@@ -114,7 +114,7 @@ func TestHashedRingBuffer_ReadFull(t *testing.T) {
 	n, err = buf.ReadFull(dataReader)
 	assert.Nil(t, err)
 	assert.Equal(t, int64(4), n)
-	assert.Equal(t, []byte{12, 13, 14, 15}, buf.Bytes())
+	assert.Equal(t, []byte{12, 13, 14, 15, 0, 0}, buf.Bytes())
 	assert.Equal(t, []byte{54, 0, 238, 0}, buf.RollingSum())
 }
 
