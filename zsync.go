@@ -137,7 +137,7 @@ func (zsync *ZSync) SearchReusableChunks(path string) (<-chan chunks.ChunkInfo, 
 	waitGroup.Add(int(nWorkers))
 
 	for i := int64(0); i < nWorkers; i++ {
-		begin := i * zsync.BlockSize
+		begin := (nChunksPerWorker * zsync.BlockSize) * i
 
 		end := begin + nChunksPerWorker*zsync.BlockSize
 		if end > inputSize {
@@ -178,7 +178,6 @@ func (zsync *ZSync) searchReusableChunksAsync(path string, begin int64, end int6
 	}
 
 	nextStep := zsync.BlockSize
-
 	buf := hasedbuffer.NewHashedBuffer(int(zsync.BlockSize))
 
 	for off := begin; off < end; off += nextStep {
