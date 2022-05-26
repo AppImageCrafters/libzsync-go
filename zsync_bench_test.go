@@ -1,14 +1,15 @@
 package zsync
 
 import (
-	"github.com/AppImageCrafters/libzsync-go/chunksmapper"
-	"github.com/AppImageCrafters/libzsync-go/control"
-	"github.com/AppImageCrafters/libzsync-go/sources"
-	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
 	"os"
 	"testing"
+
+	"github.com/AppImageCrafters/libzsync-go/chunksmapper"
+	"github.com/AppImageCrafters/libzsync-go/control"
+	"github.com/AppImageCrafters/libzsync-go/sources"
+	"github.com/stretchr/testify/assert"
 )
 
 func BenchmarkZSync2_Sync(t *testing.B) {
@@ -23,7 +24,7 @@ func BenchmarkZSync2_Sync(t *testing.B) {
 
 	for _, tt := range tests {
 		t.Run(tt, func(t *testing.B) {
-			zsyncControl, _ := getControl()
+			zsyncControl, _ := getControl("file.zsync")
 			zsyncControl.URL = serverUrl + "file"
 
 			zsync := NewZSyncFromControl(zsyncControl)

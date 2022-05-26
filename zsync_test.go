@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"testing"
 	"time"
@@ -30,8 +31,8 @@ func TestMain(m *testing.M) {
 var dataDir string = "/tmp/appimage-update"
 var serverUrl string = ""
 
-func getControl() (zsyncControl *control.Control, err error) {
-	file, err := os.Open(dataDir + "/file.zsync")
+func getControl(filepath string) (zsyncControl *control.Control, err error) {
+	file, err := os.Open(dataDir + "/" + filepath)
 	if err != nil {
 		return nil, err
 	}
@@ -103,6 +104,9 @@ func generateTestDataDir() string {
 	_ = GenerateSampleFile([]byte("abc3456789"), 2048*2+60, 0, dataDir+"/all_changed")
 	_ = GenerateSampleFile([]byte("abc3456789"), 2048*200+60, 0, dataDir+"/large_file")
 
+	_ = GenerateSampleFile([]byte("0123456789"), 2048*runtime.NumCPU()+500, 0, dataDir+"/uneven_workload_complete")
+	makeZsyncFile(dataDir+"/uneven_workload_complete", err)
+
 	return dataDir
 }
 
@@ -150,7 +154,7 @@ func TestZSync2_Sync(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt, func(t *testing.T) {
-			zsyncControl, _ := getControl()
+			zsyncControl, _ := getControl("file.zsync")
 			zsyncControl.URL = serverUrl + "file"
 
 			zsync := NewZSyncFromControl(zsyncControl)
@@ -175,7 +179,7 @@ func TestZSync2_Sync(t *testing.T) {
 }
 
 func TestZSync2_SearchReusableChunks(t *testing.T) {
-	zsyncControl, _ := getControl()
+	zsyncControl, _ := getControl("file.zsync")
 	zsyncControl.URL = serverUrl + "file"
 
 	zsync := NewZSyncFromControl(zsyncControl)
@@ -200,6 +204,32 @@ func TestZSync2_SearchReusableChunks(t *testing.T) {
 		assert.Equal(t, int64(60), results[1].Size)
 		assert.Equal(t, int64(zsyncControl.BlockSize*2), results[1].SourceOffset)
 	}
+}
+
+func TestZSync2_SearchReusableChunksWithSyncedFile(t *testing.T) {
+	numCPU := runtime.NumCPU()
+
+	zsyncControl, _ := getControl("uneven_workload_complete.zsync")
+	zsyncControl.URL = serverUrl + "uneven_workload_complete"
+
+	zsync := NewZSyncFromControl(zsyncControl)
+
+	var results []chunks.ChunkInfo
+	chunkChan, err := zsync.SearchReusableChunks(dataDir + "/uneven_workload_complete")
+	assert.Nil(t, err)
+
+	for chunk := range chunkChan {
+		results = append(results, chunk)
+	}
+	sort.SliceStable(results, func(i, j int) bool {
+		return results[i].TargetOffset < results[j].TargetOffset
+	})
+
+	assert.Len(t, results, numCPU+1)
+	assert.Equal(t, int64(zsyncControl.BlockSize), results[0].Size)
+
+	assert.Equal(t, int64(zsyncControl.BlockSize*uint(numCPU)), results[numCPU].SourceOffset)
+	assert.Equal(t, int64(500), results[numCPU].Size)
 }
 
 func TestZSync2_WriteChunks(t *testing.T) {

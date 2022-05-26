@@ -130,6 +130,7 @@ func (zsync *ZSync) SearchReusableChunks(path string) (<-chan chunks.ChunkInfo, 
 	}
 
 	nChunksPerWorker := nChunks / nWorkers
+	bytesPerWorker := (nChunksPerWorker * zsync.BlockSize)
 
 	chunkChannel := make(chan chunks.ChunkInfo)
 	var waitGroup sync.WaitGroup
@@ -137,10 +138,14 @@ func (zsync *ZSync) SearchReusableChunks(path string) (<-chan chunks.ChunkInfo, 
 	waitGroup.Add(int(nWorkers))
 
 	for i := int64(0); i < nWorkers; i++ {
-		begin := (nChunksPerWorker * zsync.BlockSize) * i
+		begin := bytesPerWorker * i
 
-		end := begin + nChunksPerWorker*zsync.BlockSize
+		end := begin + bytesPerWorker
 		if end > inputSize {
+			end = inputSize
+		}
+		// Handle any remaining bytes if there are no more workers
+		if i == nWorkers-1 {
 			end = inputSize
 		}
 
